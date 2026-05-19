@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { pool } from "@/lib/db";
+import { getPool } from "@/lib/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +13,7 @@ export async function GET() {
   };
 
   try {
+    const pool = getPool();
     const t0 = Date.now();
     const result = await pool.query<{ ok: number }>("SELECT 1 AS ok");
     checks.database = {
