@@ -139,16 +139,12 @@ export function ApplicationForm() {
 
   if (submitted) {
     return (
-      <div className="flex flex-col items-center gap-3 py-8 text-center">
-        <span
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-border py-12 text-center">
+        <CheckCircle2
+          className="h-8 w-8 text-foreground"
           aria-hidden="true"
-          className="grid h-14 w-14 place-items-center rounded-full bg-accent text-accent-foreground"
-        >
-          <CheckCircle2 className="h-7 w-7" />
-        </span>
-        <h3 className="font-heading text-xl font-bold">
-          Thank you for applying
-        </h3>
+        />
+        <h3 className="text-xl font-semibold">Thank you for applying</h3>
         <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
           Thank you — we’ll review your application and be in touch. We read
           every application with care, so please allow us a little time.

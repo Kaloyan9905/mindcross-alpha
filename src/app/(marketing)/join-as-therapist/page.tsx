@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { ClipboardCheck, HeartHandshake, Mail, Users2 } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApplicationForm } from "./application-form";
 
 export const metadata: Metadata = {
@@ -12,17 +10,14 @@ export const metadata: Metadata = {
 
 const OFFERS = [
   {
-    icon: Users2,
     title: "Clients who need you",
     body: "We connect you with people actively looking for a therapist who shares their language and culture.",
   },
   {
-    icon: HeartHandshake,
     title: "Meaningful, focused work",
     body: "Support migrants, refugees, and international students through some of the most important moments of their lives.",
   },
   {
-    icon: ClipboardCheck,
     title: "A simple platform",
     body: "Manage your availability and sessions in one calm place. You bring your own secure video link — no new tools to learn.",
   },
@@ -30,17 +25,14 @@ const OFFERS = [
 
 const STEPS = [
   {
-    number: 1,
     title: "Apply",
     body: "Tell us about your background, languages, and the support you offer. It takes a few minutes.",
   },
   {
-    number: 2,
     title: "Review",
     body: "Our team reads every application carefully and verifies your details. We'll be in touch by email.",
   },
   {
-    number: 3,
     title: "Onboard",
     body: "Once approved, we help you set up your profile and availability so clients can find and book you.",
   },
@@ -48,27 +40,27 @@ const STEPS = [
 
 export default function JoinAsTherapistPage() {
   return (
-    <>
+    <div className="mx-auto max-w-3xl px-6 lg:px-8">
       {/* Intro */}
-      <section className="bg-secondary/40">
-        <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 sm:py-24 lg:px-8">
-          <h1 className="font-heading text-3xl font-bold leading-snug tracking-tight sm:text-4xl">
-            Offer therapy that truly speaks your clients’ language.
-          </h1>
-          <p className="mt-6 text-base leading-relaxed text-muted-foreground sm:text-lg">
-            MindCross is looking for warm, qualified therapists who can support
-            migrants, refugees, and international students in their own
-            language and with genuine cultural understanding.
-          </p>
-        </div>
+      <section className="py-20 text-center sm:py-28">
+        <h1 className="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+          Offer therapy that speaks your clients&rsquo; language.
+        </h1>
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+          MindCross is looking for warm, qualified therapists who can support
+          migrants, refugees, and international students in their own language
+          and with genuine cultural understanding.
+        </p>
       </section>
 
+      <hr className="border-border" />
+
       {/* Who we look for */}
-      <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <h2 className="font-heading text-2xl font-bold tracking-tight">
-          Who we’re looking for
+      <section className="py-20 sm:py-24">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          Who we&rsquo;re looking for
         </h2>
-        <p className="mt-4 text-base leading-relaxed text-foreground/90">
+        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
           We welcome licensed or accredited mental-health professionals —
           psychologists, psychotherapists, and counsellors — who speak more
           than one language and understand what it means to build a life in a
@@ -78,93 +70,75 @@ export default function JoinAsTherapistPage() {
         </p>
       </section>
 
+      <hr className="border-border" />
+
       {/* What we offer */}
-      <section className="bg-muted/60">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <h2 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-            What we offer
-          </h2>
-          <div className="mt-10 grid gap-6 sm:grid-cols-3">
-            {OFFERS.map((offer) => (
-              <Card key={offer.title} className="h-full">
-                <CardHeader>
-                  <span
-                    aria-hidden="true"
-                    className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary"
-                  >
-                    <offer.icon className="h-5 w-5" />
-                  </span>
-                  <CardTitle className="mt-3 text-lg">{offer.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {offer.body}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+      <section className="py-20 sm:py-24">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          What we offer
+        </h2>
+        <dl className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-3">
+          {OFFERS.map((offer) => (
+            <div key={offer.title}>
+              <dt className="font-semibold">{offer.title}</dt>
+              <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {offer.body}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
+      <hr className="border-border" />
+
       {/* Process */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-        <h2 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
+      <section className="py-20 sm:py-24">
+        <h2 className="text-2xl font-semibold tracking-tight">
           How the process works
         </h2>
-        <ol className="mt-10 grid gap-6 sm:grid-cols-3">
-          {STEPS.map((step) => (
-            <li key={step.number} className="flex gap-4">
-              <span
-                aria-hidden="true"
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary font-heading text-sm font-bold text-primary-foreground"
-              >
-                {step.number}
-              </span>
-              <div>
-                <h3 className="font-heading text-base font-semibold">
-                  {step.title}
-                </h3>
-                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                  {step.body}
-                </p>
-              </div>
+        <ol className="mt-10 grid gap-10 sm:grid-cols-3">
+          {STEPS.map((step, index) => (
+            <li key={step.title}>
+              <p className="text-sm font-medium text-muted-foreground">
+                Step {index + 1}
+              </p>
+              <h3 className="mt-2 font-semibold">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {step.body}
+              </p>
             </li>
           ))}
         </ol>
       </section>
 
+      <hr className="border-border" />
+
       {/* Application form */}
-      <section className="bg-secondary/40">
-        <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <div className="mb-8 text-center">
-            <h2 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">
-              Apply to join MindCross
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Tell us a little about yourself. There are no wrong answers — we
-              read every application with care.
-            </p>
+      <section className="py-20 sm:py-24">
+        <div className="mx-auto max-w-xl">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Apply to join MindCross
+          </h2>
+          <p className="mt-2 text-muted-foreground">
+            Tell us a little about yourself. There are no wrong answers — we
+            read every application with care.
+          </p>
+
+          <div className="mt-10">
+            <ApplicationForm />
           </div>
 
-          <Card>
-            <CardContent className="pt-6">
-              <ApplicationForm />
-            </CardContent>
-          </Card>
-
-          <p className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Mail className="h-4 w-4" aria-hidden="true" />
+          <p className="mt-8 text-sm text-muted-foreground">
             Prefer email? Write to{" "}
             <a
               href="mailto:careers@mindcross.local"
-              className="text-primary underline-offset-4 hover:underline"
+              className="font-medium text-foreground underline underline-offset-4"
             >
               careers@mindcross.local
             </a>
           </p>
         </div>
       </section>
-    </>
+    </div>
   );
 }

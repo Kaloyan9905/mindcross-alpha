@@ -1,5 +1,3 @@
-import { Inbox, Users } from "lucide-react";
-
 import {
   listPendingApplications,
   listTherapistsAdmin,
@@ -84,9 +82,7 @@ export default async function AdminTherapistsPage() {
   return (
     <div className="space-y-8">
       <header className="space-y-1">
-        <h1 className="font-heading text-2xl font-bold tracking-tight">
-          Therapists
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Therapists</h1>
         <p className="text-sm text-muted-foreground">
           Review incoming applications and manage the therapist directory.
         </p>
@@ -100,7 +96,6 @@ export default async function AdminTherapistsPage() {
               id="pending-applications-heading"
               className="flex items-center gap-2"
             >
-              <Inbox className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
               Pending applications
               <Badge variant="secondary">{applications.length}</Badge>
             </CardTitle>
@@ -186,7 +181,6 @@ export default async function AdminTherapistsPage() {
               id="all-therapists-heading"
               className="flex items-center gap-2"
             >
-              <Users className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
               All therapists
               <Badge variant="secondary">{therapists.length}</Badge>
             </CardTitle>

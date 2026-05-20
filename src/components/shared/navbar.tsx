@@ -67,25 +67,12 @@ function MindCrossLogo({ className }: { className?: string }) {
       )}
       aria-label="MindCross — go to home"
     >
+      {/* Tiny restrained mark */}
       <span
         aria-hidden="true"
-        className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm"
-      >
-        {/* Stylised "bridge + heart" mark */}
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-4 w-4"
-        >
-          <path d="M3 17c3 0 3-4 6-4s3 4 6 4 3-4 6-4" />
-          <path d="M12 10c-1.5-2-4-1-4 1 0 2 2 3 4 5 2-2 4-3 4-5 0-2-2.5-3-4-1z" />
-        </svg>
-      </span>
-      <span className="font-heading text-lg font-bold tracking-tight">
+        className="h-2 w-2 rounded-full bg-primary"
+      />
+      <span className="text-lg font-semibold tracking-tight text-foreground">
         MindCross
       </span>
     </Link>
@@ -111,13 +98,13 @@ function NavLinkItem({
       <span
         aria-disabled="true"
         className={cn(
-          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground/70 cursor-not-allowed",
+          "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground/60 cursor-not-allowed",
           className
         )}
       >
         {link.label}
         {link.badge && (
-          <Badge variant="tertiary" className="px-2 py-0 text-[10px]">
+          <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
             {link.badge}
           </Badge>
         )}
@@ -131,18 +118,18 @@ function NavLinkItem({
       onClick={onSelect}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-        "hover:bg-secondary hover:text-secondary-foreground",
+        "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors duration-150",
+        "hover:text-foreground",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         isActive
-          ? "text-primary"
-          : "text-foreground/80",
+          ? "font-medium text-foreground"
+          : "text-muted-foreground",
         className
       )}
     >
       {link.label}
       {link.badge && (
-        <Badge variant="tertiary" className="px-2 py-0 text-[10px]">
+        <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
           {link.badge}
         </Badge>
       )}
@@ -168,7 +155,7 @@ function UserMenu({ user }: { user: NonNullable<NavbarUser> }) {
           aria-label="Open account menu"
         >
           <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+            <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
               {initialsFor(user.name)}
             </AvatarFallback>
           </Avatar>
@@ -337,9 +324,9 @@ export function Navbar({ user = null }: NavbarProps) {
   const pathname = usePathname() ?? "/";
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-6">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-8">
           <MindCrossLogo />
           <nav
             aria-label="Primary"

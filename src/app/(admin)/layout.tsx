@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 import { signOut } from "@/modules/identity";
 import { requireAdmin } from "@/modules/admin";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 import { AdminSidebarNav } from "./admin-nav";
 
@@ -31,14 +30,13 @@ function firstName(name?: string | null): string {
  * Layout for the `(admin)` route group — the MindCross staff console.
  *
  * The access gate: `requireAdmin()` runs first thing on every render. It reads
- * the DB-backed session and `redirect()`s any non-staff request to `/login`,
- * so every page nested under this layout is unreachable by clients,
- * therapists, and anonymous visitors. (The edge middleware only does a coarse
- * cookie-presence pre-check; this is the real boundary.)
+ * the session and `redirect()`s any non-staff request to `/login`, so every
+ * page nested under this layout is unreachable by clients, therapists, and
+ * anonymous visitors. (The edge middleware only does a coarse cookie-presence
+ * pre-check; this is the real boundary.)
  *
- * The chrome is deliberately distinct from the public `Navbar`/`Footer`: a
- * fixed sidebar + a thin top bar, signalling "internal tool", not "marketing
- * site".
+ * Minimalist chrome: a thin hairline top bar and a plain sidebar — restrained,
+ * white, no heavy color.
  */
 export default async function AdminLayout({
   children,
@@ -48,30 +46,20 @@ export default async function AdminLayout({
   const admin = await requireAdmin();
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/40">
+    <div className="flex min-h-screen flex-col bg-background">
       {/* Top bar */}
       <header className="sticky top-0 z-40 border-b border-border bg-background">
-        <div className="flex h-14 items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="flex h-14 items-center justify-between gap-4 px-6">
           <Link
             href="/admin"
-            className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="flex items-center gap-2 rounded-md text-sm font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label="MindCross admin — go to dashboard"
           >
-            <span
-              aria-hidden="true"
-              className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground shadow-sm"
-            >
-              <ShieldCheck className="h-4 w-4" />
-            </span>
-            <span className="font-heading text-base font-bold tracking-tight">
-              MindCross
-            </span>
-            <Badge variant="secondary" className="hidden sm:inline-flex">
-              Staff console
-            </Badge>
+            MindCross
+            <span className="text-muted-foreground">/ Staff console</span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <div className="hidden flex-col items-end leading-tight sm:flex">
               <span className="text-sm font-medium text-foreground">
                 {admin.name ?? admin.email ?? "Staff member"}
@@ -82,7 +70,7 @@ export default async function AdminLayout({
             </div>
             {/*
               Sign out: a form posting to an inline Server Action that calls
-              Auth.js `signOut`. `signOut` clears the session row + cookie and
+              Auth.js `signOut`. `signOut` clears the session + cookie and
               redirects, so no client JS is needed here.
             */}
             <form
@@ -91,7 +79,12 @@ export default async function AdminLayout({
                 await signOut({ redirectTo: "/login" });
               }}
             >
-              <Button type="submit" variant="outline" size="sm" className="gap-2">
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
                 <LogOut className="h-4 w-4" aria-hidden="true" />
                 <span>Sign out</span>
               </Button>
@@ -101,10 +94,10 @@ export default async function AdminLayout({
       </header>
 
       {/* Body: sidebar + main */}
-      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 sm:px-6 md:flex-row">
-        <aside className="md:w-56 md:shrink-0">
-          <div className="rounded-xl border border-border bg-card p-3 shadow-sm md:sticky md:top-20">
-            <p className="px-3 pb-2 pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 px-6 py-10 md:flex-row">
+        <aside className="md:w-52 md:shrink-0">
+          <div className="md:sticky md:top-24">
+            <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Hi, {firstName(admin.name)}
             </p>
             <AdminSidebarNav />

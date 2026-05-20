@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, SearchX } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import {
   findTherapists,
@@ -10,14 +10,6 @@ import {
   type TherapistSummary,
 } from "@/modules/matching";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FilterPanel } from "./filter-panel";
@@ -59,63 +51,69 @@ function buildHref(base: TherapistFilter, overrides: { page: number }): string {
 
 function TherapistCard({ therapist }: { therapist: TherapistSummary }) {
   return (
-    <Card className="flex h-full flex-col">
-      <CardHeader className="flex-row items-start gap-4 space-y-0">
-        <Avatar className="h-16 w-16">
+    <Link
+      href={`/therapists/${therapist.slug}`}
+      className="group flex h-full flex-col gap-4 rounded-lg border border-border p-6 transition-colors hover:bg-secondary/50"
+    >
+      <div className="flex items-start gap-4">
+        <Avatar className="h-14 w-14">
           {therapist.photoUrl ? (
             <AvatarImage src={therapist.photoUrl} alt="" />
           ) : null}
-          <AvatarFallback className="bg-primary/10 text-primary text-base font-semibold">
+          <AvatarFallback className="text-sm font-medium">
             {initialsFor(therapist.displayName)}
           </AvatarFallback>
         </Avatar>
         <div className="min-w-0">
-          <CardTitle className="text-lg">{therapist.displayName}</CardTitle>
-          <CardDescription>
+          <p className="font-semibold">{therapist.displayName}</p>
+          <p className="text-sm text-muted-foreground">
             {therapist.yearsOfExperience}{" "}
             {therapist.yearsOfExperience === 1 ? "year" : "years"} of experience
-          </CardDescription>
+          </p>
         </div>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4">
-        {therapist.languages.length > 0 ? (
-          <div>
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-              Speaks
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {therapist.languages.map((lang) => (
-                <Badge key={lang} variant="tertiary">
-                  {lang}
-                </Badge>
-              ))}
-            </div>
+      </div>
+
+      {therapist.languages.length > 0 ? (
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+            Speaks
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {therapist.languages.map((lang) => (
+              <Badge key={lang} variant="secondary">
+                {lang}
+              </Badge>
+            ))}
           </div>
-        ) : null}
-        {therapist.specializations.length > 0 ? (
-          <div>
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-              Areas of support
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {therapist.specializations.map((spec) => (
-                <Badge key={spec} variant="secondary">
-                  {spec}
-                </Badge>
-              ))}
-            </div>
+        </div>
+      ) : null}
+
+      {therapist.specializations.length > 0 ? (
+        <div>
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+            Areas of support
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {therapist.specializations.map((spec) => (
+              <Badge key={spec} variant="outline">
+                {spec}
+              </Badge>
+            ))}
           </div>
-        ) : null}
-        <p className="flex-1 text-sm leading-relaxed text-muted-foreground">
-          {therapist.bio}
-        </p>
-      </CardContent>
-      <CardFooter>
-        <Button asChild className="w-full">
-          <Link href={`/therapists/${therapist.slug}`}>View profile</Link>
-        </Button>
-      </CardFooter>
-    </Card>
+        </div>
+      ) : null}
+
+      <p className="line-clamp-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+        {therapist.bio}
+      </p>
+      <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+        View profile
+        <ArrowRight
+          className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+          aria-hidden="true"
+        />
+      </span>
+    </Link>
   );
 }
 
@@ -154,18 +152,19 @@ export default async function FindATherapistPage({
   const rangeEnd = Math.min(page * pageSize, total);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+    <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20 lg:px-8">
       <header className="max-w-2xl">
-        <h1 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           Find a therapist
         </h1>
-        <p className="mt-3 text-muted-foreground">
+        <p className="mt-3 leading-relaxed text-muted-foreground">
           Filter by the language you feel most comfortable in and the support
-          you’re looking for. Take your time — there’s no wrong choice.
+          you&rsquo;re looking for. Take your time — there&rsquo;s no wrong
+          choice.
         </p>
       </header>
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[18rem_1fr]">
+      <div className="mt-12 grid gap-12 lg:grid-cols-[16rem_1fr]">
         {/* Filters */}
         <aside className="lg:sticky lg:top-20 lg:self-start">
           <FilterPanel
@@ -176,7 +175,7 @@ export default async function FindATherapistPage({
 
         {/* Results */}
         <section aria-label="Therapist results">
-          <p className="mb-4 text-sm text-muted-foreground" aria-live="polite">
+          <p className="mb-6 text-sm text-muted-foreground" aria-live="polite">
             {total === 0
               ? "No therapists found"
               : `Showing ${rangeStart}–${rangeEnd} of ${total} ${
@@ -195,7 +194,7 @@ export default async function FindATherapistPage({
               {totalPages > 1 ? (
                 <nav
                   aria-label="Pagination"
-                  className="mt-10 flex items-center justify-between gap-4"
+                  className="mt-12 flex items-center justify-between gap-4"
                 >
                   {hasPrev ? (
                     <Button asChild variant="outline">
@@ -230,26 +229,18 @@ export default async function FindATherapistPage({
               ) : null}
             </>
           ) : (
-            <Card>
-              <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
-                <span
-                  aria-hidden="true"
-                  className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground"
-                >
-                  <SearchX className="h-6 w-6" />
-                </span>
-                <p className="font-heading text-lg font-semibold">
-                  No therapists match these filters yet
-                </p>
-                <p className="max-w-sm text-sm text-muted-foreground">
-                  No therapists match these filters yet — try broadening your
-                  search.
-                </p>
-                <Button asChild variant="outline" className="mt-2">
-                  <Link href="/find-a-therapist">Clear all filters</Link>
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="rounded-lg border border-border px-6 py-16 text-center">
+              <p className="font-semibold">
+                No therapists match these filters yet
+              </p>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+                Try broadening your search — removing a filter or two often
+                helps.
+              </p>
+              <Button asChild variant="outline" className="mt-6">
+                <Link href="/find-a-therapist">Clear all filters</Link>
+              </Button>
+            </div>
           )}
         </section>
       </div>

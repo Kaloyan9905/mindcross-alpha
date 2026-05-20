@@ -1,21 +1,11 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  CalendarDays,
-  Inbox,
-  Users,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-import { listPendingApplications, listTherapistsAdmin } from "@/modules/therapists";
-import { listBookingsAdmin } from "@/modules/booking";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  listPendingApplications,
+  listTherapistsAdmin,
+} from "@/modules/therapists";
+import { listBookingsAdmin } from "@/modules/booking";
 
 /**
  * Admin dashboard — `/admin`.
@@ -30,7 +20,6 @@ type SummaryCard = {
   count: number;
   href: string;
   hint: string;
-  icon: LucideIcon;
 };
 
 export default async function AdminDashboardPage() {
@@ -51,68 +40,51 @@ export default async function AdminDashboardPage() {
       count: pendingApplications.length,
       href: "/admin/therapists",
       hint: "Therapist applications awaiting review",
-      icon: Inbox,
     },
     {
       label: "Active therapists",
       count: activeTherapistCount,
       href: "/admin/therapists",
       hint: `of ${therapists.length} total in the directory`,
-      icon: Users,
     },
     {
       label: "Total bookings",
       count: bookings.length,
       href: "/admin/bookings",
       hint: "Sessions booked across the platform",
-      icon: CalendarDays,
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header className="space-y-1">
-        <h1 className="font-heading text-2xl font-bold tracking-tight">
-          Dashboard
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           A quick overview of what needs your attention.
         </p>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Link
-              key={card.label}
-              href={card.href}
-              className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              <Card className="h-full transition-colors hover:border-primary/40 hover:bg-card/80">
-                <CardHeader className="flex flex-row items-start justify-between space-y-0">
-                  <div className="space-y-1.5">
-                    <CardDescription>{card.label}</CardDescription>
-                    <CardTitle className="text-3xl">{card.count}</CardTitle>
-                  </div>
-                  <span
-                    aria-hidden="true"
-                    className="grid h-10 w-10 place-items-center rounded-lg bg-secondary text-secondary-foreground"
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{card.hint}</p>
-                  <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    View
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                  </span>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
+        {cards.map((card) => (
+          <Link
+            key={card.label}
+            href={card.href}
+            className="group flex flex-col rounded-lg border border-border p-5 transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            <p className="text-sm text-muted-foreground">{card.label}</p>
+            <p className="mt-1 text-3xl font-semibold tabular-nums">
+              {card.count}
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">{card.hint}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium">
+              View
+              <ArrowRight
+                className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </span>
+          </Link>
+        ))}
       </div>
     </div>
   );

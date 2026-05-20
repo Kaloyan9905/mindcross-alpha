@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------
- * MindCross design tokens
+ * MindCross design tokens — minimalist
  *
- * Light, calm, warm palette designed to reduce anxiety for migrants,
- * refugees, and international students seeking culturally-matched
- * therapy. HSL components are stored without the hsl() wrapper so
- * shadcn-style consumers can compose: hsl(var(--primary)).
+ * Near-monochrome: white surfaces, ink-black text, a single quiet
+ * grey scale, hairline borders. One restrained blue is reserved for
+ * focus rings only. Calm, uncluttered, accessible (WCAG 2.1 AA).
+ *
+ * HSL components are stored without the hsl() wrapper so shadcn-style
+ * consumers can compose: hsl(var(--primary)).
  * ------------------------------------------------------------------ */
 
 @theme {
-  /* Radius scale (shadcn convention) */
-  --radius: 0.75rem;
+  /* Tighter radius for a crisper, flatter feel */
+  --radius: 0.5rem;
 
   /* Fonts wired via next/font in src/app/layout.tsx */
   --font-heading: var(--font-heading);
@@ -57,87 +59,79 @@
 
 @layer base {
   :root {
-    /* Surfaces */
+    /* Surfaces — white + ink */
     --background: 0 0% 100%;
-    --foreground: 220 15% 12%;
+    --foreground: 220 12% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 12%;
+    --card-foreground: 220 12% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 12%;
+    --popover-foreground: 220 12% 10%;
 
-    /* Primary — soft blue, calm and trustworthy */
-    --primary: 210 70% 55%;
+    /* Primary — ink black; crisp, minimal CTAs */
+    --primary: 220 14% 11%;
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary — warm beige, used for section breaks / soft surfaces */
-    --secondary: 35 35% 90%;
-    --secondary-foreground: 30 25% 22%;
+    /* Secondary — faint grey surface */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 12% 16%;
 
-    /* Muted — slightly cooler beige for de-emphasised text + chips */
-    --muted: 35 25% 94%;
-    --muted-foreground: 220 10% 40%;
+    /* Muted — faint grey surface + mid-grey de-emphasised text */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 8% 45%;
 
-    /* Accent — pastel green, success / positive reinforcement */
-    --accent: 145 50% 75%;
-    --accent-foreground: 145 45% 18%;
+    /* Accent — neutral grey hover / active surface */
+    --accent: 220 14% 94%;
+    --accent-foreground: 220 12% 16%;
 
-    /* Tertiary — light lavender, community / group / therapist tags */
-    --tertiary: 270 35% 88%;
-    --tertiary-foreground: 270 35% 25%;
+    /* Tertiary — kept neutral grey (no decorative hue at MVP) */
+    --tertiary: 220 14% 96%;
+    --tertiary-foreground: 220 10% 32%;
 
-    /* Success (aligned with accent but explicit) */
-    --success: 145 50% 45%;
+    /* Success — restrained green, used sparingly */
+    --success: 152 38% 36%;
     --success-foreground: 0 0% 100%;
 
-    /* Destructive — warm, not alarming red */
-    --destructive: 0 65% 55%;
+    /* Destructive — restrained red */
+    --destructive: 0 60% 47%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Lines + form fields */
-    --border: 220 15% 90%;
-    --input: 220 15% 88%;
-    --ring: 210 70% 55%;
+    /* Hairlines + form fields */
+    --border: 220 13% 91%;
+    --input: 220 13% 87%;
+
+    /* Focus ring — one quiet blue, used only for visible focus */
+    --ring: 216 80% 56%;
   }
 
-  /* Single-theme MVP: render the same calm light palette regardless
-     of the system preference. This avoids a half-built dark mode. */
+  /* Single-theme MVP: render the same light palette regardless of the
+     system preference, so a stray dark: variant can never half-theme. */
   @media (prefers-color-scheme: dark) {
     :root {
       --background: 0 0% 100%;
-      --foreground: 220 15% 12%;
-
+      --foreground: 220 12% 10%;
       --card: 0 0% 100%;
-      --card-foreground: 220 15% 12%;
-
+      --card-foreground: 220 12% 10%;
       --popover: 0 0% 100%;
-      --popover-foreground: 220 15% 12%;
-
-      --primary: 210 70% 55%;
+      --popover-foreground: 220 12% 10%;
+      --primary: 220 14% 11%;
       --primary-foreground: 0 0% 100%;
-
-      --secondary: 35 35% 90%;
-      --secondary-foreground: 30 25% 22%;
-
-      --muted: 35 25% 94%;
-      --muted-foreground: 220 10% 40%;
-
-      --accent: 145 50% 75%;
-      --accent-foreground: 145 45% 18%;
-
-      --tertiary: 270 35% 88%;
-      --tertiary-foreground: 270 35% 25%;
-
-      --success: 145 50% 45%;
+      --secondary: 220 14% 96%;
+      --secondary-foreground: 220 12% 16%;
+      --muted: 220 14% 96%;
+      --muted-foreground: 220 8% 45%;
+      --accent: 220 14% 94%;
+      --accent-foreground: 220 12% 16%;
+      --tertiary: 220 14% 96%;
+      --tertiary-foreground: 220 10% 32%;
+      --success: 152 38% 36%;
       --success-foreground: 0 0% 100%;
-
-      --destructive: 0 65% 55%;
+      --destructive: 0 60% 47%;
       --destructive-foreground: 0 0% 100%;
-
-      --border: 220 15% 90%;
-      --input: 220 15% 88%;
-      --ring: 210 70% 55%;
+      --border: 220 13% 91%;
+      --input: 220 13% 87%;
+      --ring: 216 80% 56%;
     }
   }
 
@@ -161,22 +155,24 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Minimalist headings: same family as body, medium weight, gently
+     tightened tracking. No separate display typeface. */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
-    font-family: var(--font-heading), ui-sans-serif, system-ui, -apple-system,
+    font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system,
       BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-weight: 600;
+    letter-spacing: -0.012em;
     color: hsl(var(--foreground));
   }
 
   ::selection {
-    background-color: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--foreground));
   }
 
   /* Accessible focus rings using the brand --ring token. Applied to

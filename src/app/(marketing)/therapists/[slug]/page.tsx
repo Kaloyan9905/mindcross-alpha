@@ -1,22 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  Globe2,
-  GraduationCap,
-  Languages,
-  Sparkles,
-  Video,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { getTherapistBySlug } from "@/modules/therapists";
 import { getCurrentUser } from "@/modules/identity";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { BookingSection } from "./booking-section";
 
 /** Profiles change rarely; revalidate on a gentle cadence. */
@@ -73,9 +64,11 @@ export default async function TherapistDetailPage({
     notFound();
   }
 
+  const firstName = therapist.displayName.split(" ")[0];
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-      <Button asChild variant="ghost" size="sm" className="mb-6 -ml-2">
+    <div className="mx-auto max-w-5xl px-6 py-12 sm:py-16 lg:px-8">
+      <Button asChild variant="ghost" size="sm" className="mb-8 -ml-2">
         <Link href="/find-a-therapist">
           <ArrowLeft aria-hidden="true" />
           Back to all therapists
@@ -84,57 +77,49 @@ export default async function TherapistDetailPage({
 
       {/* Profile header */}
       <header className="flex flex-col gap-6 sm:flex-row sm:items-start">
-        <Avatar className="h-28 w-28 shrink-0">
+        <Avatar className="h-24 w-24 shrink-0">
           {therapist.photoUrl ? (
             <AvatarImage src={therapist.photoUrl} alt="" />
           ) : null}
-          <AvatarFallback className="bg-primary/10 text-primary text-2xl font-semibold">
+          <AvatarFallback className="text-xl font-medium">
             {initialsFor(therapist.displayName)}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <h1 className="font-heading text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-semibold tracking-tight">
             {therapist.displayName}
           </h1>
-          <p className="mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
-            <GraduationCap className="h-4 w-4" aria-hidden="true" />
+          <p className="mt-1.5 text-sm text-muted-foreground">
             {therapist.yearsOfExperience}{" "}
             {therapist.yearsOfExperience === 1 ? "year" : "years"} of experience
             {therapist.gender && GENDER_LABELS[therapist.gender] ? (
               <>
-                <span aria-hidden="true">·</span>
+                {" · "}
                 {GENDER_LABELS[therapist.gender]}
               </>
             ) : null}
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {therapist.migrationExperience ? (
-              <Badge variant="accent" className="gap-1.5">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                Has lived migration experience
-              </Badge>
+              <Badge variant="secondary">Has lived migration experience</Badge>
             ) : null}
-            <Badge variant="secondary">Free session at MVP</Badge>
+            <Badge variant="outline">Free session at MVP</Badge>
           </div>
         </div>
       </header>
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_20rem]">
+      <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_18rem]">
         {/* Main column */}
-        <div className="space-y-8">
+        <div className="space-y-10">
           {/* Languages */}
           {therapist.languages.length > 0 ? (
             <section>
-              <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
-                <Languages
-                  className="h-5 w-5 text-primary"
-                  aria-hidden="true"
-                />
+              <h2 className="text-sm font-semibold text-muted-foreground">
                 Languages
               </h2>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {therapist.languages.map((lang) => (
-                  <Badge key={lang} variant="tertiary">
+                  <Badge key={lang} variant="secondary">
                     {lang}
                   </Badge>
                 ))}
@@ -145,13 +130,12 @@ export default async function TherapistDetailPage({
           {/* Cultural background */}
           {therapist.culturalBackground.length > 0 ? (
             <section>
-              <h2 className="flex items-center gap-2 font-heading text-lg font-semibold">
-                <Globe2 className="h-5 w-5 text-primary" aria-hidden="true" />
+              <h2 className="text-sm font-semibold text-muted-foreground">
                 Cultural background
               </h2>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {therapist.culturalBackground.map((culture) => (
-                  <Badge key={culture} variant="tertiary">
+                  <Badge key={culture} variant="secondary">
                     {culture}
                   </Badge>
                 ))}
@@ -162,12 +146,12 @@ export default async function TherapistDetailPage({
           {/* Specializations */}
           {therapist.specializations.length > 0 ? (
             <section>
-              <h2 className="font-heading text-lg font-semibold">
+              <h2 className="text-sm font-semibold text-muted-foreground">
                 Areas of support
               </h2>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {therapist.specializations.map((spec) => (
-                  <Badge key={spec} variant="secondary">
+                  <Badge key={spec} variant="outline">
                     {spec}
                   </Badge>
                 ))}
@@ -175,33 +159,25 @@ export default async function TherapistDetailPage({
             </section>
           ) : null}
 
-          <Separator />
+          <hr className="border-border" />
 
           {/* Bio */}
           <section>
-            <h2 className="font-heading text-lg font-semibold">
-              About {therapist.displayName.split(" ")[0]}
-            </h2>
-            <p className="mt-3 whitespace-pre-line text-base leading-relaxed text-foreground/90">
+            <h2 className="text-lg font-semibold">About {firstName}</h2>
+            <p className="mt-3 whitespace-pre-line text-base leading-relaxed text-muted-foreground">
               {therapist.bio}
             </p>
           </section>
 
           {/* Session format */}
-          <Card className="bg-muted/60">
-            <CardHeader className="flex-row items-center gap-2 space-y-0">
-              <Video className="h-5 w-5 text-primary" aria-hidden="true" />
-              <CardTitle className="text-base">Session format</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                Sessions are held online. Once your booking is confirmed,{" "}
-                {therapist.displayName.split(" ")[0]} will share their own
-                secure video link with you — there’s nothing extra to install
-                through MindCross.
-              </p>
-            </CardContent>
-          </Card>
+          <section className="rounded-lg border border-border p-6">
+            <h2 className="font-semibold">Session format</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Sessions are held online. Once your booking is confirmed,{" "}
+              {firstName} will share their own secure video link with you —
+              there&rsquo;s nothing extra to install through MindCross.
+            </p>
+          </section>
         </div>
 
         {/* Booking sidebar */}

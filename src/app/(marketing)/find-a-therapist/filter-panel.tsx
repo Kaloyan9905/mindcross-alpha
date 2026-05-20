@@ -114,9 +114,9 @@ export function FilterPanel({
     current.migrationExperience;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5">
-      <div className="flex items-center justify-between">
-        <h2 className="font-heading text-base font-semibold">Filters</h2>
+    <div>
+      <div className="flex items-center justify-between border-b border-border pb-3">
+        <h2 className="text-sm font-semibold">Filters</h2>
         {hasActiveFilters ? (
           <Button
             type="button"

@@ -146,7 +146,7 @@ function BookingCard({
             {booking.therapistPhotoUrl ? (
               <AvatarImage src={booking.therapistPhotoUrl} alt="" />
             ) : null}
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+            <AvatarFallback className="text-sm font-medium">
               {initialsFor(booking.therapistDisplayName)}
             </AvatarFallback>
           </Avatar>
@@ -154,7 +154,7 @@ function BookingCard({
             <div className="flex flex-wrap items-center gap-2">
               <Link
                 href={`/therapists/${booking.therapistSlug}`}
-                className="font-heading font-semibold text-foreground underline-offset-4 hover:underline"
+                className="font-semibold text-foreground underline-offset-4 hover:underline"
               >
                 {booking.therapistDisplayName}
               </Link>
@@ -198,13 +198,11 @@ export function BookingsList({ bookings, userId, variant }: BookingsListProps) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-          <span
+          <CalendarX2
+            className="h-7 w-7 text-muted-foreground"
             aria-hidden="true"
-            className="grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground"
-          >
-            <CalendarX2 className="h-6 w-6" />
-          </span>
-          <p className="font-heading text-lg font-semibold">
+          />
+          <p className="text-lg font-semibold">
             {variant === "upcoming"
               ? "No upcoming sessions"
               : "Nothing here yet"}

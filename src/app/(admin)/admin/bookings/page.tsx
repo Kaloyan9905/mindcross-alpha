@@ -1,5 +1,3 @@
-import { CalendarDays } from "lucide-react";
-
 import { listBookingsAdmin, type BookingStatus } from "@/modules/booking";
 import {
   Card,
@@ -62,9 +60,7 @@ export default async function AdminBookingsPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="font-heading text-2xl font-bold tracking-tight">
-          Bookings
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Bookings</h1>
         <p className="text-sm text-muted-foreground">
           Every session booked across MindCross, most recent first.
         </p>
@@ -73,10 +69,6 @@ export default async function AdminBookingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CalendarDays
-              className="h-5 w-5 text-muted-foreground"
-              aria-hidden="true"
-            />
             All bookings
             <Badge variant="secondary">{bookings.length}</Badge>
           </CardTitle>
