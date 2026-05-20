@@ -3,6 +3,10 @@ import { z } from "zod";
 const ServerEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  // Auth.js v5: secret used to sign/encrypt tokens and cookies.
+  AUTH_SECRET: z.string().min(16, "AUTH_SECRET must be at least 16 characters"),
+  // Auth.js v5: trust the host header (set to "true" for local + Vercel).
+  AUTH_TRUST_HOST: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;

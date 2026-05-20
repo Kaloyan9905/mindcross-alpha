@@ -26,6 +26,11 @@ services:
     environment:
       DATABASE_URL: postgres://mindcross:mindcross_dev@postgres:5432/mindcross
       NODE_ENV: production
+      # Auth.js v5 requires a secret to sign/encrypt JWT session tokens.
+      # Fixed dev value — override with a real secret in any deployed env.
+      AUTH_SECRET: TLYNhyl7J6R5RAVbG3B7lErR73/SpWV3LCgBNqyihuw=
+      # Trust the host header so Auth.js works behind the compose network.
+      AUTH_TRUST_HOST: "true"
     ports:
       - "3000:3000"
     depends_on:

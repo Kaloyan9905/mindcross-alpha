@@ -36,7 +36,9 @@ COPY --from=build --chown=nextjs:nodejs /app/public ./public
 USER nextjs
 EXPOSE 3000
 
+# Use 127.0.0.1 (not "localhost"): the Next.js standalone server binds IPv4
+# only, while Alpine resolves "localhost" to ::1 first — which refuses.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
-    CMD wget --quiet --spider http://localhost:3000/api/health || exit 1
+    CMD wget --quiet --spider http://127.0.0.1:3000/api/health || exit 1
 
 CMD ["node", "server.js"]
