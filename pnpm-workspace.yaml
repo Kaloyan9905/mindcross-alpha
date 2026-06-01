@@ -1,8 +1,13 @@
+# pnpm reads build-script approvals from here. These native deps ship prebuilt
+# binaries and legitimately run install scripts; allow them so pnpm doesn't fail
+# the install with ERR_PNPM_IGNORED_BUILDS (notably on Vercel).
 allowBuilds:
-  esbuild: set this to true or false
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
+  "@node-rs/argon2": true
+  esbuild: true
+  sharp: true
+  unrs-resolver: true
 onlyBuiltDependencies:
+  - "@node-rs/argon2"
   - esbuild
   - sharp
   - unrs-resolver
