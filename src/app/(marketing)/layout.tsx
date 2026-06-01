@@ -2,6 +2,7 @@ import * as React from "react";
 
 import { getCurrentUser } from "@/modules/identity";
 import { getDictionary } from "@/lib/i18n/server";
+import { getNavActivity } from "@/lib/nav-activity";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 
@@ -19,6 +20,7 @@ export default async function MarketingLayout({
     getCurrentUser(),
     getDictionary(),
   ]);
+  const activity = await getNavActivity(user);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -30,6 +32,7 @@ export default async function MarketingLayout({
         }
         navLabels={dict.nav}
         locale={locale}
+        activity={activity}
       />
       <main id="main-content" className="flex-1">
         {children}

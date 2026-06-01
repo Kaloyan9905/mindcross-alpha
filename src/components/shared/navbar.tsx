@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarDays,
   ChevronDown,
@@ -46,6 +46,22 @@ export type NavbarUser = {
   name?: string | null;
   role?: string | null;
 } | null;
+
+/** Unseen activity counts surfaced as badges/dots in the account menu. */
+export type NavActivity = {
+  friendRequests: number;
+  unreadMessages: number;
+};
+
+/** A small red count pill (Instagram-style), aligned to the right of a row. */
+function CountPill({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[11px] font-semibold leading-none text-destructive-foreground">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 type NavLink = {
   label: string;
@@ -178,18 +194,33 @@ function roleBadge(
   return null;
 }
 
-function UserMenu({ user }: { user: NonNullable<NavbarUser> }) {
+function UserMenu({
+  user,
+  activity,
+}: {
+  user: NonNullable<NavbarUser>;
+  activity?: NavActivity;
+}) {
   const dest = primaryDestination(user.role);
   const DestIcon = dest.icon;
   const badge = roleBadge(user.role);
+  const requests = activity?.friendRequests ?? 0;
+  const unread = activity?.unreadMessages ?? 0;
+  const total = requests + unread;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="h-10 gap-2 px-2"
-          aria-label="Open account menu"
+          className="relative h-10 gap-2 px-2"
+          aria-label={total > 0 ? `Open account menu, ${total} new` : "Open account menu"}
         >
+          {total > 0 ? (
+            <span
+              aria-hidden="true"
+              className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background"
+            />
+          ) : null}
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-muted text-muted-foreground text-xs font-medium">
               {initialsFor(user.name)}
@@ -233,12 +264,14 @@ function UserMenu({ user }: { user: NonNullable<NavbarUser> }) {
               <Link href="/account/messages">
                 <MessageCircle aria-hidden="true" />
                 Messages
+                <CountPill count={unread} />
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/account/friends">
                 <Users aria-hidden="true" />
                 Friends
+                <CountPill count={requests} />
               </Link>
             </DropdownMenuItem>
           </>
@@ -264,13 +297,18 @@ function MobileMenu({
   user,
   pathname,
   links,
+  activity,
 }: {
   user: NavbarUser;
   pathname: string;
   links: NavLink[];
+  activity?: NavActivity;
 }) {
   const [open, setOpen] = React.useState(false);
   const close = React.useCallback(() => setOpen(false), []);
+  const requests = activity?.friendRequests ?? 0;
+  const unread = activity?.unreadMessages ?? 0;
+  const total = requests + unread;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -278,9 +316,15 @@ function MobileMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
-          aria-label="Open menu"
+          className="relative md:hidden"
+          aria-label={total > 0 ? `Open menu, ${total} new` : "Open menu"}
         >
+          {total > 0 ? (
+            <span
+              aria-hidden="true"
+              className="absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background"
+            />
+          ) : null}
           <Menu className="h-5 w-5" aria-hidden="true" />
         </Button>
       </DialogTrigger>
@@ -334,6 +378,28 @@ function MobileMenu({
                   </Link>
                 );
               })()}
+              {!user.role || user.role === "client" ? (
+                <>
+                  <Link
+                    href="/account/messages"
+                    onClick={close}
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                    Messages
+                    <CountPill count={unread} />
+                  </Link>
+                  <Link
+                    href="/account/friends"
+                    onClick={close}
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Users className="h-4 w-4" aria-hidden="true" />
+                    Friends
+                    <CountPill count={requests} />
+                  </Link>
+                </>
+              ) : null}
               {/* Clients reach /account via "My sessions" above; therapists and
                   staff get a direct link to their personal account too. */}
               {user.role && user.role !== "client" ? (
@@ -383,12 +449,15 @@ export interface NavbarProps {
   navLabels?: { home: string; find: string; mission: string };
   /** Active interface language (for the language switcher). */
   locale?: Locale;
+  /** Unseen activity (friend requests + unread messages) for the account menu. */
+  activity?: NavActivity;
 }
 
 export function Navbar({
   user = null,
   navLabels,
   locale = DEFAULT_LOCALE,
+  activity,
 }: NavbarProps) {
   const pathname = usePathname() ?? "/";
 
@@ -421,10 +490,11 @@ export function Navbar({
         </div>
 
         <div className="flex items-center gap-1">
+          {user ? <NavbarActivityPoller /> : null}
           <LanguageSwitcher current={locale} />
           <ThemeToggle />
           {user ? (
-            <UserMenu user={user} />
+            <UserMenu user={user} activity={activity} />
           ) : (
             <div className="hidden items-center gap-2 sm:flex">
               <Button variant="ghost" asChild>
@@ -435,9 +505,29 @@ export function Navbar({
               </Button>
             </div>
           )}
-          <MobileMenu user={user} pathname={pathname} links={links} />
+          <MobileMenu
+            user={user}
+            pathname={pathname}
+            links={links}
+            activity={activity}
+          />
         </div>
       </div>
     </header>
   );
+}
+
+/**
+ * Periodically re-fetches the server components on the current route so the
+ * account-menu activity counts (friend requests, unread messages) stay fresh
+ * without a manual reload — a new friend request lights up the dot within ~a
+ * minute. `router.refresh()` preserves client state, so it won't disrupt forms.
+ */
+function NavbarActivityPoller({ intervalMs = 60000 }: { intervalMs?: number }) {
+  const router = useRouter();
+  React.useEffect(() => {
+    const id = setInterval(() => router.refresh(), intervalMs);
+    return () => clearInterval(id);
+  }, [router, intervalMs]);
+  return null;
 }
