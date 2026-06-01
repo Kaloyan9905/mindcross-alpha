@@ -95,6 +95,12 @@ export const therapists = pgTable(
     status: text("status", { enum: THERAPIST_STATUS })
       .notNull()
       .default("pending_review"),
+    /**
+     * Trust signal shown to clients as a "Verified" badge. Toggled by admin
+     * after manual ID/license/reference checks (verification automation is a
+     * post-MVP item). Defaults to false.
+     */
+    verified: boolean("verified").notNull().default(false),
     photoUrl: text("photo_url"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .notNull()

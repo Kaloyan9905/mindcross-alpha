@@ -1,27 +1,28 @@
 @import "tailwindcss";
 
 /* ------------------------------------------------------------------
- * MindCross design tokens — minimalist
+ * MindCross design tokens — "Calm Wellness"
  *
- * Near-monochrome: white surfaces, ink-black text, a single quiet
- * grey scale, hairline borders. One restrained blue is reserved for
- * focus rings only. Calm, uncluttered, accessible (WCAG 2.1 AA).
+ * Calming healthcare palette: a deep teal primary, a soft emerald accent
+ * for positive states, deep slate-teal ink on a barely-cool near-white,
+ * white cards floating on soft teal-tinted shadows. Warm serif headings
+ * (Lora) over a highly legible sans body (Inter). Soft radii. No harsh
+ * red except for genuine danger. WCAG 2.1 AA.
  *
- * HSL components are stored without the hsl() wrapper so shadcn-style
- * consumers can compose: hsl(var(--primary)).
+ * HSL components are stored without the hsl() wrapper so consumers can
+ * compose: hsl(var(--primary)).
  * ------------------------------------------------------------------ */
 
 @theme {
-  /* Tighter radius for a crisper, flatter feel */
-  --radius: 0.5rem;
+  /* Soft, premium radius */
+  --radius: 0.75rem;
 
-  /* Fonts wired via next/font in src/app/layout.tsx */
-  --font-heading: var(--font-heading);
+  /* One clean sans (Inter) for headings + body — wired in layout.tsx */
+  --font-heading: var(--font-body);
   --font-body: var(--font-body);
   --font-sans: var(--font-body);
 
-  /* Semantic color tokens — consumed by Tailwind 4 utilities
-     (bg-background, text-foreground, bg-primary, etc.) */
+  /* Semantic color tokens — consumed by Tailwind 4 utilities */
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
 
@@ -59,80 +60,95 @@
 
 @layer base {
   :root {
-    /* Surfaces — white + ink */
-    --background: 0 0% 100%;
-    --foreground: 220 12% 10%;
+    /* Surfaces — barely-cool near-white bg, pure-white cards float on it */
+    --background: 195 38% 99%;
+    --foreground: 200 26% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 12% 10%;
+    --card-foreground: 200 26% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 12% 10%;
+    --popover-foreground: 200 26% 15%;
 
-    /* Primary — ink black; crisp, minimal CTAs */
-    --primary: 220 14% 11%;
-    --primary-foreground: 0 0% 100%;
+    /* Primary — deep teal CTA (white text passes AA) */
+    --primary: 193 82% 28%;
+    --primary-foreground: 180 50% 98%;
 
-    /* Secondary — faint grey surface */
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 12% 16%;
+    /* Secondary — soft cyan-tinted surface (chips, secondary buttons) */
+    --secondary: 190 46% 95%;
+    --secondary-foreground: 196 58% 24%;
 
-    /* Muted — faint grey surface + mid-grey de-emphasised text */
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 8% 45%;
+    /* Muted — soft cool surface + slate de-emphasised text */
+    --muted: 200 32% 96%;
+    --muted-foreground: 205 16% 42%;
 
-    /* Accent — neutral grey hover / active surface */
-    --accent: 220 14% 94%;
-    --accent-foreground: 220 12% 16%;
+    /* Accent — soft emerald tint for positive states (verified/confirmed) */
+    --accent: 156 46% 92%;
+    --accent-foreground: 162 72% 22%;
 
-    /* Tertiary — kept neutral grey (no decorative hue at MVP) */
-    --tertiary: 220 14% 96%;
-    --tertiary-foreground: 220 10% 32%;
+    /* Tertiary — soft neutral cool grey (pending / completed) */
+    --tertiary: 200 30% 95%;
+    --tertiary-foreground: 205 18% 36%;
 
-    /* Success — restrained green, used sparingly */
-    --success: 152 38% 36%;
+    /* Success — solid emerald, used sparingly */
+    --success: 162 70% 30%;
     --success-foreground: 0 0% 100%;
 
-    /* Destructive — restrained red */
-    --destructive: 0 60% 47%;
+    /* Destructive — restrained red, only for genuine danger */
+    --destructive: 0 64% 48%;
     --destructive-foreground: 0 0% 100%;
 
     /* Hairlines + form fields */
-    --border: 220 13% 91%;
-    --input: 220 13% 87%;
+    --border: 200 26% 90%;
+    --input: 200 22% 84%;
 
-    /* Focus ring — one quiet blue, used only for visible focus */
-    --ring: 216 80% 56%;
+    /* Focus ring — brand teal */
+    --ring: 193 80% 36%;
   }
 
-  /* Single-theme MVP: render the same light palette regardless of the
-     system preference, so a stray dark: variant can never half-theme. */
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: 0 0% 100%;
-      --foreground: 220 12% 10%;
-      --card: 0 0% 100%;
-      --card-foreground: 220 12% 10%;
-      --popover: 0 0% 100%;
-      --popover-foreground: 220 12% 10%;
-      --primary: 220 14% 11%;
-      --primary-foreground: 0 0% 100%;
-      --secondary: 220 14% 96%;
-      --secondary-foreground: 220 12% 16%;
-      --muted: 220 14% 96%;
-      --muted-foreground: 220 8% 45%;
-      --accent: 220 14% 94%;
-      --accent-foreground: 220 12% 16%;
-      --tertiary: 220 14% 96%;
-      --tertiary-foreground: 220 10% 32%;
-      --success: 152 38% 36%;
-      --success-foreground: 0 0% 100%;
-      --destructive: 0 60% 47%;
-      --destructive-foreground: 0 0% 100%;
-      --border: 220 13% 91%;
-      --input: 220 13% 87%;
-      --ring: 216 80% 56%;
-    }
+  /*
+   * Dark theme — applied by adding the `.dark` class to <html> (a no-flash
+   * script in layout.tsx sets it from the saved preference or system setting,
+   * before first paint). A calm desaturated charcoal-teal: surfaces step up in
+   * lightness for elevation, with a brighter teal so the brand still sings.
+   * Contrast pairs target WCAG AA in both themes.
+   */
+  .dark {
+    --background: 200 24% 9%;
+    --foreground: 195 16% 92%;
+
+    --card: 200 22% 12%;
+    --card-foreground: 195 16% 92%;
+
+    --popover: 200 22% 13%;
+    --popover-foreground: 195 16% 92%;
+
+    /* Brighter teal with near-black text reads crisp on dark */
+    --primary: 188 64% 46%;
+    --primary-foreground: 200 40% 8%;
+
+    --secondary: 198 20% 18%;
+    --secondary-foreground: 190 22% 88%;
+
+    --muted: 200 16% 16%;
+    --muted-foreground: 200 12% 64%;
+
+    --accent: 162 28% 20%;
+    --accent-foreground: 156 48% 80%;
+
+    --tertiary: 200 14% 20%;
+    --tertiary-foreground: 200 12% 70%;
+
+    --success: 158 50% 42%;
+    --success-foreground: 160 45% 8%;
+
+    --destructive: 0 60% 54%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 14% 22%;
+    --input: 200 14% 26%;
+
+    --ring: 188 70% 52%;
   }
 
   * {
@@ -155,8 +171,7 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Minimalist headings: same family as body, medium weight, gently
-     tightened tracking. No separate display typeface. */
+  /* Clean, professional sans headings (Inter) — crisp, slightly tightened. */
   h1,
   h2,
   h3,
@@ -166,23 +181,21 @@
     font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system,
       BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     font-weight: 600;
-    letter-spacing: -0.012em;
+    letter-spacing: -0.02em;
     color: hsl(var(--foreground));
   }
 
   ::selection {
     background-color: hsl(var(--secondary));
-    color: hsl(var(--foreground));
+    color: hsl(var(--secondary-foreground));
   }
 
-  /* Accessible focus rings using the brand --ring token. Applied to
-     any focus-visible target that doesn't override outline itself. */
+  /* Accessible focus rings using the brand --ring token. */
   :focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
   }
 
-  /* Respect user motion preferences */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -196,9 +209,138 @@
 }
 
 /* ------------------------------------------------------------------
+ * Reusable visual utilities: soft teal-tinted elevation + a calming
+ * gradient wash for hero / feature sections.
+ * ------------------------------------------------------------------ */
+@layer utilities {
+  /* Subtle, near-neutral elevation — crisp and professional, not heavy. */
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px hsl(200 16% 20% / 0.05),
+      0 1px 3px hsl(200 16% 20% / 0.05);
+  }
+  .shadow-soft-lg {
+    box-shadow:
+      0 2px 6px -2px hsl(200 16% 20% / 0.06),
+      0 8px 20px -8px hsl(200 16% 20% / 0.08);
+  }
+  /* One larger, softer elevation for featured / home cards — a warm halo. */
+  .shadow-soft-xl {
+    box-shadow:
+      0 4px 12px -4px hsl(200 16% 20% / 0.07),
+      0 18px 44px -12px hsl(200 16% 20% / 0.11);
+  }
+
+  /* Quiet, grouped row for trust signals (verified · experience · lived
+     migration). Calm by design — a soft accent wash, never loud. */
+  .trust-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    background: hsl(var(--secondary) / 0.5);
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Generous, opt-in vertical rhythm for marketing sections. */
+  .section-space-lg {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+  @media (min-width: 640px) {
+    .section-space-lg {
+      padding-top: 6rem;
+      padding-bottom: 6rem;
+    }
+  }
+
+  /* Comfortable long-form reading measure for copy-heavy pages. */
+  .prose-lg {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+  }
+  .prose-lg p + p {
+    margin-top: 1.25rem;
+  }
+
+  /* Soft loading shimmer sweep — warmth instead of a flat pulse. Neutralized
+     by the prefers-reduced-motion guard (the sweeping ::after is removed). */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background: hsl(var(--muted));
+  }
+  .shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--secondary) / 0.7),
+      transparent
+    );
+    animation: mc-shimmer 2.2s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shimmer::after {
+      content: none;
+    }
+  }
+
+  /* Clean, barely-there tinted fade behind the hero + a hairline base. */
+  .hero-wash {
+    background: linear-gradient(
+      180deg,
+      hsl(192 44% 97%),
+      hsl(var(--background)) 72%
+    );
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  /* Subtle lift used on interactive cards. */
+  .card-lift {
+    transition:
+      transform 180ms ease-out,
+      box-shadow 180ms ease-out,
+      border-color 180ms ease-out;
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  /* In dark mode the near-neutral shadows vanish — switch to deeper black so
+     cards still float, and darken the hero wash. */
+  .dark .shadow-soft {
+    box-shadow:
+      0 1px 2px hsl(0 0% 0% / 0.3),
+      0 1px 3px hsl(0 0% 0% / 0.28);
+  }
+  .dark .shadow-soft-lg {
+    box-shadow:
+      0 2px 6px -2px hsl(0 0% 0% / 0.4),
+      0 8px 20px -8px hsl(0 0% 0% / 0.45);
+  }
+  .dark .shadow-soft-xl {
+    box-shadow:
+      0 4px 12px -4px hsl(0 0% 0% / 0.45),
+      0 18px 44px -12px hsl(0 0% 0% / 0.55);
+  }
+  .dark .hero-wash {
+    background: linear-gradient(
+      180deg,
+      hsl(198 28% 13%),
+      hsl(var(--background)) 72%
+    );
+  }
+}
+
+/* ------------------------------------------------------------------
  * Animation primitives used by Radix overlays (dialog, dropdown,
- * select, etc.). Tailwind 4 is CSS-first, so we inline a tiny subset
- * of tailwindcss-animate utilities the UI components reference.
+ * select). Tailwind 4 is CSS-first, so we inline the small subset of
+ * animate utilities the UI components reference.
  * ------------------------------------------------------------------ */
 @layer utilities {
   @keyframes mc-fade-in {
@@ -210,12 +352,12 @@
     to { opacity: 0; }
   }
   @keyframes mc-zoom-in {
-    from { opacity: 0; transform: scale(0.95); }
+    from { opacity: 0; transform: scale(0.96); }
     to { opacity: 1; transform: scale(1); }
   }
   @keyframes mc-zoom-out {
     from { opacity: 1; transform: scale(1); }
-    to { opacity: 0; transform: scale(0.95); }
+    to { opacity: 0; transform: scale(0.96); }
   }
   @keyframes mc-slide-in-right {
     from { transform: translateX(100%); }
@@ -225,10 +367,127 @@
     from { transform: translateX(0); }
     to { transform: translateX(100%); }
   }
+  @keyframes mc-shimmer {
+    100% { transform: translateX(100%); }
+  }
+  @keyframes mc-rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes mc-blob {
+    0%,
+    100% {
+      transform: translate(0, 0) scale(1);
+    }
+    33% {
+      transform: translate(4%, -5%) scale(1.08);
+    }
+    66% {
+      transform: translate(-4%, 4%) scale(0.95);
+    }
+  }
+  @keyframes mc-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    60% {
+      transform: scale(1.08);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Brand gradient text — for a hero headline accent. */
+  .text-gradient {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--primary)),
+      hsl(174 64% 38%)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* A confident pop-in for confirmation moments. */
+  .animate-pop {
+    animation: mc-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+
+  /* Animated underline that grows from the centre — for nav links. */
+  .link-underline {
+    position: relative;
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0.25rem;
+    height: 2px;
+    border-radius: 2px;
+    background: hsl(var(--primary));
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .link-underline:hover::after,
+  .link-underline[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+
+  /* Rise-in on mount; add an inline animation-delay to stagger a list. The
+     reduced-motion guard collapses the duration so it lands instantly. */
+  .animate-rise {
+    animation: mc-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /*
+   * Scroll reveal. Default (no-JS) state is fully visible; only once the boot
+   * script has added `.js` to <html> do elements start hidden and transition in
+   * when the ScrollReveal component adds `.is-visible`. So content is never
+   * stuck invisible without JS.
+   */
+  .reveal {
+    transition:
+      opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .js .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    will-change: opacity, transform;
+  }
+  .js .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Soft drifting aura blobs behind the hero — slow, low-opacity, decorative. */
+  .hero-blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(56px);
+    opacity: 0.5;
+    animation: mc-blob 18s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .dark .hero-blob {
+    opacity: 0.32;
+  }
 
   [data-state="open"].animate-in,
   .data-\[state\=open\]\:animate-in[data-state="open"] {
-    animation: mc-fade-in 180ms ease-out;
+    animation: mc-zoom-in 180ms ease-out;
   }
   [data-state="closed"].animate-out,
   .data-\[state\=closed\]\:animate-out[data-state="closed"] {

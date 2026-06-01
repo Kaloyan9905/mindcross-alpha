@@ -5,11 +5,12 @@ import { NextResponse, type NextRequest } from "next/server";
  *
  * Why this is deliberately minimal
  * --------------------------------
- * MindCross uses Auth.js with the *database* session strategy. The session is
- * a row in the `sessions` table; resolving it requires a DB round-trip, which
- * cannot run in the Edge runtime that middleware executes in. So middleware
- * cannot know the user's *role* — or even reliably that the session is still
- * valid (the cookie could point at a deleted/expired row).
+ * MindCross uses Auth.js v5 with the *JWT* session strategy (the Credentials
+ * provider only supports JWT — see `modules/identity/lib/auth.ts`). The session
+ * lives in a signed/encrypted cookie, not a DB row. Middleware deliberately
+ * does NOT decode or verify that token here — it only checks whether a session
+ * cookie is *present*. That keeps the Edge gate cheap and avoids duplicating
+ * token verification; it also means middleware cannot know the user's *role*.
  *
  * What it therefore does: a single cheap check — is an Auth.js session-token
  * cookie present at all? If not, the request is obviously unauthenticated, so
@@ -19,9 +20,9 @@ import { NextResponse, type NextRequest } from "next/server";
  *
  * The REAL access control:
  *   - `/admin/*`   -> `requireAdmin()` in `src/app/(admin)/layout.tsx`, which
- *                     reads the DB session and checks for a staff role.
+ *                     resolves the verified session and checks for a staff role.
  *   - `/account/*` -> the page/layout-level `requireUser()` guard.
- * Both run in Server Components where the DB session is fully resolvable. A
+ * Both run in Server Components where the JWT session is decoded and verified. A
  * forged or stale cookie passes middleware but fails those guards.
  *
  * Cookie names mirror `modules/identity/lib/auth.ts`: `authjs.session-token`

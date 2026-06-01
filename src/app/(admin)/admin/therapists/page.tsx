@@ -1,9 +1,10 @@
+import Link from "next/link";
+
 import {
   listPendingApplications,
   listTherapistsAdmin,
   type TherapistStatus,
 } from "@/modules/therapists";
-import { requireAdmin } from "@/modules/admin";
 import {
   Card,
   CardContent,
@@ -16,6 +17,7 @@ import type { BadgeProps } from "@/components/ui/badge";
 
 import { ApplicationActions } from "./application-actions";
 import { TherapistStatusActions } from "./therapist-status-actions";
+import { TherapistAdminControls } from "./therapist-admin-controls";
 
 /** Shared date formatter — short, locale-aware (DESIGN: dates via Intl). */
 const DATE_FMT = new Intl.DateTimeFormat("en", {
@@ -67,13 +69,11 @@ function TagList({ items }: { items: readonly string[] }) {
  *   1. Pending applications — review queue. Approve/Reject per row.
  *   2. All therapists — the full directory with a per-row status changer.
  *
- * Gated by the `(admin)` layout's `requireAdmin()`. We call `requireAdmin()`
- * again here only to obtain the admin's id, which the action components need
- * as `reviewerId`.
+ * Gated by the `(admin)` layout's `requireAdmin()`. The mutating actions
+ * (approve/reject, status change) self-authorize server-side via
+ * `getAdminUser()`, so this page does not need to thread the admin's id down.
  */
 export default async function AdminTherapistsPage() {
-  const admin = await requireAdmin();
-
   const [applications, therapists] = await Promise.all([
     listPendingApplications(),
     listTherapistsAdmin(),
@@ -144,6 +144,40 @@ export default async function AdminTherapistsPage() {
                           <div className="text-muted-foreground">
                             {app.email}
                           </div>
+                          <details className="mt-2 max-w-xs">
+                            <summary className="cursor-pointer text-xs font-medium text-primary underline-offset-4 hover:underline">
+                              View application
+                            </summary>
+                            <dl className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                              <div className="flex gap-1.5">
+                                <dt className="font-medium text-foreground">
+                                  Experience:
+                                </dt>
+                                <dd>
+                                  {app.yearsOfExperience != null
+                                    ? `${app.yearsOfExperience} year${app.yearsOfExperience === 1 ? "" : "s"}`
+                                    : "—"}
+                                </dd>
+                              </div>
+                              <div className="flex gap-1.5">
+                                <dt className="font-medium text-foreground">
+                                  Country:
+                                </dt>
+                                <dd>{app.country?.trim() || "—"}</dd>
+                              </div>
+                              <div className="flex gap-1.5">
+                                <dt className="font-medium text-foreground">
+                                  Phone:
+                                </dt>
+                                <dd>{app.phone?.trim() || "—"}</dd>
+                              </div>
+                              {app.shortBio?.trim() ? (
+                                <p className="whitespace-pre-line pt-1 leading-relaxed">
+                                  {app.shortBio.trim()}
+                                </p>
+                              ) : null}
+                            </dl>
+                          </details>
                         </td>
                         <td className="px-3 py-3">
                           <TagList items={app.languages} />
@@ -159,7 +193,6 @@ export default async function AdminTherapistsPage() {
                             <ApplicationActions
                               applicationId={app.id}
                               applicantName={app.fullName}
-                              reviewerId={admin.id}
                             />
                           </div>
                         </td>
@@ -223,9 +256,18 @@ export default async function AdminTherapistsPage() {
                           className="border-b border-border last:border-0 align-middle"
                         >
                           <td className="px-3 py-3">
-                            <div className="font-medium text-foreground">
-                              {therapist.displayName}
-                            </div>
+                            {therapist.status === "active" ? (
+                              <Link
+                                href={`/therapists/${therapist.slug}`}
+                                className="font-medium text-foreground underline-offset-4 hover:underline"
+                              >
+                                {therapist.displayName}
+                              </Link>
+                            ) : (
+                              <div className="font-medium text-foreground">
+                                {therapist.displayName}
+                              </div>
+                            )}
                             <div className="text-muted-foreground">
                               {therapist.email}
                             </div>
@@ -237,12 +279,17 @@ export default async function AdminTherapistsPage() {
                             {DATE_FMT.format(therapist.createdAt)}
                           </td>
                           <td className="px-3 py-3">
-                            <div className="flex justify-end">
+                            <div className="flex flex-col items-end gap-2">
                               <TherapistStatusActions
                                 therapistId={therapist.id}
                                 displayName={therapist.displayName}
                                 currentStatus={therapist.status}
-                                reviewerId={admin.id}
+                              />
+                              <TherapistAdminControls
+                                therapistId={therapist.id}
+                                displayName={therapist.displayName}
+                                verified={therapist.verified}
+                                hasLogin={therapist.hasLogin}
                               />
                             </div>
                           </td>

@@ -31,10 +31,17 @@ export type { TherapistFilter } from "./lib/filters";
 export { getTherapistBySlug } from "./queries/get-therapist-by-slug";
 export type { TherapistDetail } from "./queries/get-therapist-by-slug";
 
+export { listActiveTherapistSlugs } from "./queries/list-active-slugs";
+export type { TherapistSlugRow } from "./queries/list-active-slugs";
+
 export { listPendingApplications } from "./queries/list-pending-applications";
 
 export { listTherapistsAdmin } from "./queries/list-therapists-admin";
 export type { TherapistAdminRow } from "./queries/list-therapists-admin";
+
+export { getTherapistForCurrentUser } from "./queries/get-therapist-for-user";
+export { listUpcomingAvailability } from "./queries/list-availability-for-therapist";
+export { listOpenSlotsForTherapist } from "./queries/list-open-slots";
 
 // --- Server actions ----------------------------------------------------------
 export { submitApplicationAction } from "./actions/submit-application";
@@ -54,3 +61,26 @@ export type {
   SetTherapistStatusInput,
   SetTherapistStatusResult,
 } from "./actions/set-therapist-status";
+
+export { setTherapistVerifiedAction } from "./actions/set-therapist-verified";
+export type {
+  SetTherapistVerifiedInput,
+  SetTherapistVerifiedResult,
+} from "./actions/set-therapist-verified";
+
+// Therapist self-service (self-authorizing — scoped to the caller's profile).
+export { updateTherapistProfileAction } from "./actions/update-profile";
+export type {
+  UpdateTherapistProfileInput,
+  UpdateTherapistProfileResult,
+} from "./actions/update-profile";
+
+export {
+  addAvailabilitySlotAction,
+  removeAvailabilitySlotAction,
+} from "./actions/manage-availability";
+export type {
+  AddAvailabilitySlotInput,
+  RemoveAvailabilitySlotInput,
+  AvailabilityResult,
+} from "./actions/manage-availability";

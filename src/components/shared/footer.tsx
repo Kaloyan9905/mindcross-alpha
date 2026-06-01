@@ -1,6 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { LifeBuoy, Mail } from "lucide-react";
 
 type FooterColumn = {
   title: string;
@@ -17,19 +17,17 @@ const COLUMNS: FooterColumn[] = [
     links: [
       { label: "Find a Therapist", href: "/find-a-therapist" },
       { label: "Our Mission", href: "/our-mission" },
-      { label: "Group Sessions", href: "/group-sessions" },
     ],
   },
   {
     title: "For Therapists",
-    links: [{ label: "Join Us", href: "/therapists/join" }],
+    links: [{ label: "Join Us", href: "/join-as-therapist" }],
   },
   {
     title: "Legal",
     links: [
-      { label: "Privacy", href: "#" },
-      { label: "Terms", href: "#" },
-      { label: "Disclaimer", href: "#" },
+      { label: "Privacy", href: "/privacy" },
+      { label: "Disclaimer", href: "/disclaimer" },
     ],
   },
   {
@@ -104,7 +102,26 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-16 h-px w-full bg-border" />
+        {/* Persistent crisis line — MindCross is not an emergency service. */}
+        <div className="mt-12 flex items-start gap-2.5 rounded-lg border border-border bg-muted/50 p-3 text-sm text-muted-foreground">
+          <LifeBuoy
+            className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+            aria-hidden="true"
+          />
+          <span>
+            In a crisis or emergency, MindCross can&rsquo;t help in time — please
+            call your local emergency number (<strong>112</strong> in the EU) or{" "}
+            <Link
+              href="/crisis-support"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              find a crisis line for your region
+            </Link>
+            .
+          </span>
+        </div>
+
+        <div className="mt-8 h-px w-full bg-border" />
 
         <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
@@ -119,5 +136,3 @@ export function Footer() {
     </footer>
   );
 }
-
-export default Footer;

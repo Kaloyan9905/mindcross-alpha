@@ -23,7 +23,10 @@ export default function AuthLayout({
         </Link>
       </header>
 
-      <main className="flex w-full max-w-sm flex-1 flex-col justify-center py-12">
+      <main
+        id="main-content"
+        className="flex w-full max-w-sm flex-1 flex-col justify-center py-12"
+      >
         {children}
       </main>
     </div>

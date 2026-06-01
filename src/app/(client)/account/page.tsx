@@ -4,11 +4,16 @@ import Link from "next/link";
 import { getCurrentUser } from "@/modules/identity";
 import {
   listBookingsForClient,
+  listBookingInvites,
+  type BookingInviteRow,
   type ClientBookingRow,
 } from "@/modules/booking";
+import { listOpenSlotsForTherapist } from "@/modules/therapists";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookingsList } from "./bookings-list";
+import { BookingsList, type SlotOption } from "./bookings-list";
+import { AccountDeletion } from "./account-deletion";
+import { GroupInvitations } from "./group-invitations";
 
 export const metadata: Metadata = {
   title: "My sessions — MindCross",
@@ -48,14 +53,42 @@ export default async function AccountPage() {
   }
 
   let bookings: ClientBookingRow[] = [];
+  let loadFailed = false;
   try {
     bookings = await listBookingsForClient(user.id);
   } catch {
-    bookings = [];
+    // A read failure must NOT be shown as "you have no sessions".
+    loadFailed = true;
   }
 
   const { upcoming, past } = splitBookings(bookings);
   const firstName = user.name?.split(" ")[0];
+
+  let invites: BookingInviteRow[] = [];
+  try {
+    invites = await listBookingInvites(user.id);
+  } catch {
+    // Non-fatal — just don't show invitations this render.
+  }
+
+  // For each upcoming booking's therapist, load their OTHER open slots so the
+  // client can reschedule into one. Keyed by therapistId.
+  const therapistIds = [...new Set(upcoming.map((b) => b.therapistId))];
+  const openSlotsByTherapist: Record<string, SlotOption[]> = {};
+  try {
+    await Promise.all(
+      therapistIds.map(async (tid) => {
+        const slots = await listOpenSlotsForTherapist(tid);
+        openSlotsByTherapist[tid] = slots.map((s) => ({
+          id: s.id,
+          startsAt: s.startsAt.toISOString(),
+          endsAt: s.endsAt.toISOString(),
+        }));
+      }),
+    );
+  } catch {
+    // Non-fatal — reschedule just won't offer alternatives this render.
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
@@ -74,30 +107,55 @@ export default async function AccountPage() {
         </Button>
       </header>
 
-      <div className="mt-10">
-        <Tabs defaultValue="upcoming">
-          <TabsList>
-            <TabsTrigger value="upcoming">
-              Upcoming ({upcoming.length})
-            </TabsTrigger>
-            <TabsTrigger value="past">
-              Past &amp; cancelled ({past.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="upcoming" className="mt-6">
-            <BookingsList
-              bookings={upcoming}
-              userId={user.id}
-              variant="upcoming"
-            />
-          </TabsContent>
-
-          <TabsContent value="past" className="mt-6">
-            <BookingsList bookings={past} userId={user.id} variant="past" />
-          </TabsContent>
-        </Tabs>
+      <div className="mt-8">
+        <GroupInvitations invites={invites} />
       </div>
+
+      <div className="mt-10">
+        {loadFailed ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center"
+          >
+            <p className="font-medium text-foreground">
+              We couldn&rsquo;t load your sessions
+            </p>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+              Something went wrong on our side — your sessions are safe. Please
+              refresh the page to try again.
+            </p>
+          </div>
+        ) : (
+          <Tabs defaultValue="upcoming">
+            <TabsList>
+              <TabsTrigger value="upcoming">
+                Upcoming ({upcoming.length})
+              </TabsTrigger>
+              <TabsTrigger value="past">
+                Past &amp; cancelled ({past.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="upcoming" className="mt-6">
+              <BookingsList
+                bookings={upcoming}
+                variant="upcoming"
+                openSlotsByTherapist={openSlotsByTherapist}
+              />
+            </TabsContent>
+
+            <TabsContent value="past" className="mt-6">
+              <BookingsList bookings={past} variant="past" />
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
+
+      {/* Quiet, de-emphasized account controls — kept well away from the
+          everyday booking actions above. */}
+      <footer className="mt-24 border-t border-border pt-5">
+        <AccountDeletion />
+      </footer>
     </div>
   );
 }

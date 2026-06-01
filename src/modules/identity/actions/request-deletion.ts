@@ -1,9 +1,13 @@
 "use server";
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-
 import { auth } from "@/modules/identity/lib/auth";
+import { sendEmail } from "@/modules/notifications";
+
+/**
+ * Where account-deletion requests are routed. Ops monitors this inbox and
+ * executes the erasure from the admin Users page (or the database).
+ */
+const OPS_EMAIL = "privacy@mindcross.local";
 
 /**
  * Result of {@link requestDeletionAction}. Discriminated on `ok`.
@@ -16,15 +20,12 @@ export type RequestDeletionResult =
  * Record a GDPR "right to erasure" (Article 17) request for the currently
  * authenticated user.
  *
- * MVP behaviour: this does NOT delete any data. Account deletion at MVP is a
- * manual admin task — there is no automated erasure pipeline yet. This action
- * only *logs the request* so the team can act on it:
- *   1. `console.log` an audit line, and
- *   2. write a JSON file under `dev-emails/` (the shared dev inbox the team
- *      watches for mock notifications).
+ * MVP flow (per the MVP plan's "manual deletion flow"): the user requests
+ * erasure here; this notifies ops, who then erase the account from the admin
+ * Users page (`/admin/users` → `deleteUserAction`). We do not auto-delete on
+ * self-service to keep an irreversible action behind a human step.
  *
- * When the real deletion flow is built, replace the body here with the
- * cascading delete + confirmation email — the signature can stay the same.
+ * The (mock) notification is best-effort — see `sendEmail`.
  */
 export async function requestDeletionAction(): Promise<RequestDeletionResult> {
   const session = await auth();
@@ -34,33 +35,43 @@ export async function requestDeletionAction(): Promise<RequestDeletionResult> {
   }
 
   const requestedAt = new Date();
-  const record = {
-    type: "gdpr_deletion_request" as const,
-    userId: session.user.id,
-    email: session.user.email ?? null,
-    name: session.user.name ?? null,
-    requestedAt: requestedAt.toISOString(),
-    note: "MVP: deletion is a manual admin task — no data has been removed.",
-  };
+  const userId = session.user.id;
+  const userEmail = session.user.email ?? "unknown";
+  const userName = session.user.name ?? "(no name)";
 
-  // Audit trail to the server log.
-  console.log("[GDPR] Account deletion requested:", record);
+  console.log("[GDPR] Account deletion requested:", {
+    userId,
+    email: userEmail,
+    requestedAt: requestedAt.toISOString(),
+  });
 
   try {
-    const dir = join(process.cwd(), "dev-emails");
-    await mkdir(dir, { recursive: true });
+    // Notify ops so they can process the erasure. `sendEmail` is the mock
+    // transport at MVP (writes to dev-emails/ + logs); it never throws.
+    await sendEmail({
+      to: OPS_EMAIL,
+      subject: `Account deletion request — ${userEmail}`,
+      text: `A user has requested deletion of their MindCross account (GDPR Article 17).
 
-    const stamp = requestedAt.toISOString().replace(/[:.]/g, "-");
-    const safeEmail = (session.user.email ?? "unknown").replace(
-      /[^a-z0-9._-]/gi,
-      "_",
-    );
-    const file = join(dir, `${stamp}-${safeEmail}-deletion-request.json`);
+User: ${userName}
+Email: ${userEmail}
+User ID: ${userId}
+Requested at: ${requestedAt.toISOString()}
 
-    await writeFile(file, JSON.stringify(record, null, 2), "utf8");
+Process this from /admin/users (Delete) once verified.`,
+      html: `<p>A user has requested deletion of their MindCross account (GDPR Article 17).</p>
+<ul>
+  <li><strong>User:</strong> ${userName}</li>
+  <li><strong>Email:</strong> ${userEmail}</li>
+  <li><strong>User ID:</strong> ${userId}</li>
+  <li><strong>Requested at:</strong> ${requestedAt.toISOString()}</li>
+</ul>
+<p>Process this from <code>/admin/users</code> (Delete) once verified.</p>`,
+    });
+
     return { ok: true };
   } catch (err) {
-    console.error("requestDeletionAction failed to write request file:", err);
+    console.error("requestDeletionAction failed to notify ops:", err);
     return {
       ok: false,
       error: "Could not record your deletion request. Please contact support.",

@@ -37,18 +37,3 @@ export async function requireUser(): Promise<SessionUser> {
   }
   return user;
 }
-
-/**
- * Require an authenticated user whose role is one of `roles`. Redirects to
- * `/login` if anonymous, or to `/` if signed in but not authorized.
- */
-export async function requireRole(
-  roles: UserRole | readonly UserRole[],
-): Promise<SessionUser> {
-  const user = await requireUser();
-  const allowed = Array.isArray(roles) ? roles : [roles];
-  if (!allowed.includes(user.role)) {
-    redirect("/");
-  }
-  return user;
-}

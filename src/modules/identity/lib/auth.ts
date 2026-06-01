@@ -35,7 +35,21 @@ declare module "next-auth" {
   }
 }
 
-const IS_PROD = process.env.NODE_ENV === "production";
+/**
+ * Whether to mark cookies `Secure` and use the `__Secure-` name prefix.
+ *
+ * This must track the actual transport scheme, NOT `NODE_ENV`. A production
+ * build served over plain HTTP (e.g. the local Docker container reached at
+ * `http://localhost:3000`) must NOT set `Secure`/`__Secure-` cookies — browsers
+ * refuse to send them over HTTP on any host other than `localhost`, which
+ * silently breaks sign-in/out. We key off the scheme of the canonical
+ * `AUTH_URL` instead, so secure cookies are used exactly when the app is
+ * actually reached over HTTPS — an https `AUTH_URL`, or any Vercel deployment
+ * (always HTTPS, even on preview URLs where `AUTH_URL` may be unset).
+ */
+const USE_SECURE_COOKIES =
+  (process.env.AUTH_URL ?? "").startsWith("https://") ||
+  Boolean(process.env.VERCEL);
 
 /**
  * Auth.js v5 configuration for MindCross.
@@ -88,14 +102,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
     },
     cookies: {
       sessionToken: {
-        name: IS_PROD
+        name: USE_SECURE_COOKIES
           ? "__Secure-authjs.session-token"
           : "authjs.session-token",
         options: {
           httpOnly: true,
           sameSite: "lax",
           path: "/",
-          secure: IS_PROD,
+          secure: USE_SECURE_COOKIES,
         },
       },
     },

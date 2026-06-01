@@ -5,29 +5,41 @@ import * as schema from "./schema";
 
 type Schema = typeof schema;
 
-let _pool: Pool | null = null;
-let _db: NodePgDatabase<Schema> | null = null;
-
 /**
- * Lazy singleton Postgres pool. Created on first call to avoid running env
- * validation or opening a connection during `next build`.
+ * Cache the pool/client on `globalThis` so warm serverless invocations (Vercel)
+ * reuse one pool instead of opening a fresh set of connections each time, which
+ * would quickly exhaust the database.
  */
-export function getPool(): Pool {
-  if (!_pool) {
-    _pool = new Pool({
-      connectionString: env().DATABASE_URL,
-      max: 10,
-    });
-  }
-  return _pool;
+const globalForDb = globalThis as unknown as {
+  _mcPool?: Pool;
+  _mcDb?: NodePgDatabase<Schema>;
+};
+
+/** Managed Postgres (Neon, Supabase, …) requires TLS; local Docker does not. */
+function needsSsl(url: string): boolean {
+  return !/(localhost|127\.0\.0\.1)/.test(url);
 }
 
 /**
- * Lazy Drizzle client over the singleton pool.
+ * Lazy singleton Postgres pool. Created on first call (never during build), and
+ * cached across invocations. TLS is enabled automatically for non-local hosts.
  */
-export function getDb(): NodePgDatabase<Schema> {
-  if (!_db) {
-    _db = drizzle(getPool(), { schema });
+export function getPool(): Pool {
+  if (!globalForDb._mcPool) {
+    const url = env().DATABASE_URL;
+    globalForDb._mcPool = new Pool({
+      connectionString: url,
+      max: 10,
+      ssl: needsSsl(url) ? { rejectUnauthorized: false } : undefined,
+    });
   }
-  return _db;
+  return globalForDb._mcPool;
+}
+
+/** Lazy Drizzle client over the singleton pool. */
+export function getDb(): NodePgDatabase<Schema> {
+  if (!globalForDb._mcDb) {
+    globalForDb._mcDb = drizzle(getPool(), { schema });
+  }
+  return globalForDb._mcDb;
 }

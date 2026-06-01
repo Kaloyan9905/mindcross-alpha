@@ -24,6 +24,10 @@
 .DS_Store
 *.pem
 
+# IDE / editor
+.idea/
+.vscode/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -37,6 +41,9 @@ yarn-error.log*
 
 # mock email output (notifications module writes here at MVP)
 dev-emails/
+
+# local working cache of Confluence spec pages (fetched for reference)
+.confluence-cache/
 
 # vercel
 .vercel

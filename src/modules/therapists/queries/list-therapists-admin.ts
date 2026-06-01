@@ -12,6 +12,9 @@ export type TherapistAdminRow = {
   displayName: string;
   email: string;
   status: TherapistStatus;
+  verified: boolean;
+  /** True when a login account is linked to this therapist profile. */
+  hasLogin: boolean;
   createdAt: Date;
 };
 
@@ -29,16 +32,20 @@ const MAX_THERAPISTS = 500;
 export async function listTherapistsAdmin(): Promise<TherapistAdminRow[]> {
   const db = getDb();
 
-  return db
+  const rows = await db
     .select({
       id: therapists.id,
       slug: therapists.slug,
       displayName: therapists.displayName,
       email: therapists.email,
       status: therapists.status,
+      verified: therapists.verified,
+      userId: therapists.userId,
       createdAt: therapists.createdAt,
     })
     .from(therapists)
     .orderBy(desc(therapists.createdAt))
     .limit(MAX_THERAPISTS);
+
+  return rows.map(({ userId, ...r }) => ({ ...r, hasLogin: userId !== null }));
 }

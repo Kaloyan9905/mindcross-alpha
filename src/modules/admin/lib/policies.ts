@@ -57,3 +57,23 @@ export async function requireAdmin(): Promise<SessionUser> {
   }
   return user;
 }
+
+/**
+ * Non-redirecting admin check for use inside Server Actions.
+ *
+ * Returns the staff session user, or `null` if the request is anonymous or
+ * non-staff. Unlike {@link requireAdmin} (which `redirect()`s — correct for
+ * page/layout rendering), an action must return a structured result, so it
+ * branches on this instead of throwing a redirect.
+ *
+ * EVERY mutating admin action must call this and derive identity from the
+ * returned user — a `"use server"` function is an independently-invokable
+ * endpoint, so the page-level `requireAdmin()` gate alone does NOT protect it.
+ */
+export async function getAdminUser(): Promise<SessionUser | null> {
+  const user = await getCurrentUser();
+  if (!user || !isAdminRole(user.role)) {
+    return null;
+  }
+  return user;
+}

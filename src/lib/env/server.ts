@@ -7,6 +7,11 @@ const ServerEnvSchema = z.object({
   AUTH_SECRET: z.string().min(16, "AUTH_SECRET must be at least 16 characters"),
   // Auth.js v5: trust the host header (set to "true" for local + Vercel).
   AUTH_TRUST_HOST: z.string().optional(),
+  // Shared secret guarding the cron-triggered job endpoints (e.g. the 24h
+  // reminder scan at /api/cron/reminders). Optional in development; when set,
+  // requests must present it as `Authorization: Bearer <CRON_SECRET>`. The
+  // endpoint refuses to run in production unless this is configured.
+  CRON_SECRET: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;

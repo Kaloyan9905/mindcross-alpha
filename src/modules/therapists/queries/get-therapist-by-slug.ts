@@ -27,6 +27,7 @@ export type TherapistDetail = {
   specializations: string[];
   migrationExperience: boolean;
   gender: TherapistGender | null;
+  verified: boolean;
   pricePerSessionCents: number | null;
   currency: string;
   photoUrl: string | null;
@@ -62,6 +63,7 @@ export async function getTherapistBySlug(
       specializations: therapists.specializations,
       migrationExperience: therapists.migrationExperience,
       gender: therapists.gender,
+      verified: therapists.verified,
       pricePerSessionCents: therapists.pricePerSessionCents,
       currency: therapists.currency,
       photoUrl: therapists.photoUrl,

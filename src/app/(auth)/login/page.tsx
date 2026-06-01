@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { auth } from "@/modules/identity/lib/auth";
+import { safeCallbackUrl } from "@/lib/safe-redirect";
 import { LoginForm } from "@/modules/identity/components/login-form";
 
 export const metadata: Metadata = {
@@ -16,13 +17,19 @@ export const metadata: Metadata = {
 };
 
 /**
- * Sign-in page. Already-authenticated users are bounced to /account so they
- * never see a login form while logged in.
+ * Sign-in page. Already-authenticated users are bounced to where they were
+ * headed (the validated `callbackUrl`), or /account.
  */
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const callbackUrl = safeCallbackUrl((await searchParams).callbackUrl);
+
   const session = await auth();
   if (session?.user) {
-    redirect("/account");
+    redirect(callbackUrl);
   }
 
   return (
@@ -34,7 +41,7 @@ export default async function LoginPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <LoginForm />
+        <LoginForm callbackUrl={callbackUrl} />
       </CardContent>
     </Card>
   );

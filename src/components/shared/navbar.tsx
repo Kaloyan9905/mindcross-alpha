@@ -8,11 +8,20 @@ import {
   ChevronDown,
   LogOut,
   Menu,
+  MessageCircle,
   UserCircle2,
+  Users,
   X,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import type { BadgeProps } from "@/components/ui/badge";
 
 import { cn } from "@/lib/utils";
+import { signOutAction } from "@/modules/identity/actions/sign-out";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
+import { type Locale, DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -48,12 +57,6 @@ type NavLink = {
 const NAV_LINKS: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "Find a Therapist", href: "/find-a-therapist" },
-  {
-    label: "Group Sessions",
-    href: "/group-sessions",
-    disabled: true,
-    badge: "soon",
-  },
   { label: "Our Mission", href: "/our-mission" },
 ];
 
@@ -145,7 +148,40 @@ function initialsFor(name?: string | null) {
   return (first + last).toUpperCase() || "MC";
 }
 
+/**
+ * The single, role-aware primary destination for a signed-in user. Shared by
+ * the desktop dropdown and the mobile drawer so they never drift (the mobile
+ * menu previously listed `/account` twice).
+ */
+function primaryDestination(role?: string | null): {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+} {
+  if (role?.startsWith("admin_")) {
+    return { href: "/admin", label: "Staff console", icon: UserCircle2 };
+  }
+  if (role === "therapist") {
+    return { href: "/therapist", label: "Therapist dashboard", icon: CalendarDays };
+  }
+  return { href: "/account", label: "My sessions", icon: CalendarDays };
+}
+
+/** A friendly, human label + badge tone for a raw role string. */
+function roleBadge(
+  role?: string | null,
+): { label: string; variant: NonNullable<BadgeProps["variant"]> } | null {
+  if (!role) return null;
+  if (role.startsWith("admin_")) return { label: "Staff", variant: "secondary" };
+  if (role === "therapist") return { label: "Therapist", variant: "accent" };
+  if (role === "client") return { label: "Client", variant: "outline" };
+  return null;
+}
+
 function UserMenu({ user }: { user: NonNullable<NavbarUser> }) {
+  const dest = primaryDestination(user.role);
+  const DestIcon = dest.icon;
+  const badge = roleBadge(user.role);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -170,33 +206,46 @@ function UserMenu({ user }: { user: NonNullable<NavbarUser> }) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-1">
             <span className="text-sm font-medium normal-case tracking-normal text-foreground">
               {user.name ?? "Signed in"}
             </span>
-            {user.role && (
-              <span className="text-xs text-muted-foreground normal-case tracking-normal">
-                {user.role}
-              </span>
-            )}
+            {badge ? (
+              <Badge
+                variant={badge.variant}
+                className="w-fit px-1.5 py-0 text-[10px] font-medium normal-case tracking-normal"
+              >
+                {badge.label}
+              </Badge>
+            ) : null}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/account">
-            <UserCircle2 aria-hidden="true" />
-            Account
+          <Link href={dest.href}>
+            <DestIcon aria-hidden="true" />
+            {dest.label}
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/account">
-            <CalendarDays aria-hidden="true" />
-            My sessions
-          </Link>
-        </DropdownMenuItem>
+        {(!user.role || user.role === "client") ? (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/account/messages">
+                <MessageCircle aria-hidden="true" />
+                Messages
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/account/friends">
+                <Users aria-hidden="true" />
+                Friends
+              </Link>
+            </DropdownMenuItem>
+          </>
+        ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <form action="/api/auth/signout" method="post" className="w-full">
+          <form action={signOutAction} className="w-full">
             <button
               type="submit"
               className="flex w-full items-center gap-2 text-left"
@@ -214,9 +263,11 @@ function UserMenu({ user }: { user: NonNullable<NavbarUser> }) {
 function MobileMenu({
   user,
   pathname,
+  links,
 }: {
   user: NavbarUser;
   pathname: string;
+  links: NavLink[];
 }) {
   const [open, setOpen] = React.useState(false);
   const close = React.useCallback(() => setOpen(false), []);
@@ -235,7 +286,7 @@ function MobileMenu({
       </DialogTrigger>
       <DialogContent
         className={cn(
-          "left-auto right-0 top-0 h-dvh w-[85vw] max-w-sm translate-x-0 translate-y-0 rounded-none p-0 sm:rounded-none",
+          "left-auto right-0 top-0 flex h-dvh w-[85vw] max-w-sm translate-x-0 translate-y-0 flex-col rounded-none p-0 sm:rounded-none",
           "data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right"
         )}
       >
@@ -256,7 +307,7 @@ function MobileMenu({
           aria-label="Mobile primary"
           className="flex flex-col gap-1 p-4"
         >
-          {NAV_LINKS.map((link) => (
+          {links.map((link) => (
             <NavLinkItem
               key={link.href}
               link={link}
@@ -269,23 +320,33 @@ function MobileMenu({
         <div className="mt-auto flex flex-col gap-2 border-t border-border p-4">
           {user ? (
             <>
-              <Link
-                href="/account"
-                onClick={close}
-                className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <UserCircle2 className="h-4 w-4" aria-hidden="true" />
-                Account
-              </Link>
-              <Link
-                href="/account"
-                onClick={close}
-                className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <CalendarDays className="h-4 w-4" aria-hidden="true" />
-                My sessions
-              </Link>
-              <form action="/api/auth/signout" method="post">
+              {(() => {
+                const dest = primaryDestination(user.role);
+                const DestIcon = dest.icon;
+                return (
+                  <Link
+                    href={dest.href}
+                    onClick={close}
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <DestIcon className="h-4 w-4" aria-hidden="true" />
+                    {dest.label}
+                  </Link>
+                );
+              })()}
+              {/* Clients reach /account via "My sessions" above; therapists and
+                  staff get a direct link to their personal account too. */}
+              {user.role && user.role !== "client" ? (
+                <Link
+                  href="/account"
+                  onClick={close}
+                  className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <UserCircle2 className="h-4 w-4" aria-hidden="true" />
+                  My account
+                </Link>
+              ) : null}
+              <form action={signOutAction}>
                 <Button
                   type="submit"
                   variant="outline"
@@ -304,7 +365,7 @@ function MobileMenu({
                 </Link>
               </Button>
               <Button asChild>
-                <Link href="/signup" onClick={close}>
+                <Link href="/register" onClick={close}>
                   Sign up
                 </Link>
               </Button>
@@ -318,13 +379,29 @@ function MobileMenu({
 
 export interface NavbarProps {
   user?: NavbarUser;
+  /** Translated labels for the primary nav (falls back to English). */
+  navLabels?: { home: string; find: string; mission: string };
+  /** Active interface language (for the language switcher). */
+  locale?: Locale;
 }
 
-export function Navbar({ user = null }: NavbarProps) {
+export function Navbar({
+  user = null,
+  navLabels,
+  locale = DEFAULT_LOCALE,
+}: NavbarProps) {
   const pathname = usePathname() ?? "/";
 
+  const links: NavLink[] = navLabels
+    ? [
+        { label: navLabels.home, href: "/" },
+        { label: navLabels.find, href: "/find-a-therapist" },
+        { label: navLabels.mission, href: "/our-mission" },
+      ]
+    : NAV_LINKS;
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background">
+    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
           <MindCrossLogo />
@@ -332,17 +409,20 @@ export function Navbar({ user = null }: NavbarProps) {
             aria-label="Primary"
             className="hidden items-center gap-1 md:flex"
           >
-            {NAV_LINKS.map((link) => (
+            {links.map((link) => (
               <NavLinkItem
                 key={link.href}
                 link={link}
                 pathname={pathname}
+                className="link-underline"
               />
             ))}
           </nav>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          <LanguageSwitcher current={locale} />
+          <ThemeToggle />
           {user ? (
             <UserMenu user={user} />
           ) : (
@@ -351,15 +431,13 @@ export function Navbar({ user = null }: NavbarProps) {
                 <Link href="/login">Log in</Link>
               </Button>
               <Button asChild>
-                <Link href="/signup">Sign up</Link>
+                <Link href="/register">Sign up</Link>
               </Button>
             </div>
           )}
-          <MobileMenu user={user} pathname={pathname} />
+          <MobileMenu user={user} pathname={pathname} links={links} />
         </div>
       </div>
     </header>
   );
 }
-
-export default Navbar;

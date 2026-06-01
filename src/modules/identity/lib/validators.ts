@@ -9,10 +9,12 @@ const PASSWORD_MIN = 12;
 const PASSWORD_MAX = 200;
 
 /**
- * Registration form input. The `confirmPassword` and `consent` fields exist
- * only at the form boundary — they are not persisted. The refine enforces
- * that the two password fields match; the error is attached to
- * `confirmPassword` so the form surfaces it on the right field.
+ * Registration form input. `confirmPassword` is a form-only field (not stored).
+ * `consent` is a literal-`true` gate: the user must accept, and `registerAction`
+ * records that acceptance (timestamp + policy version) on the user row for GDPR
+ * (see `lib/consent.ts`). The refine enforces that the two password fields
+ * match; the error is attached to `confirmPassword` so the form surfaces it on
+ * the right field.
  */
 export const registerSchema = z
   .object({

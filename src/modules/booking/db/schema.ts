@@ -1,5 +1,12 @@
 import { sql } from "drizzle-orm";
-import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
 import { users } from "@/modules/identity/db/schema";
 import {
@@ -60,6 +67,33 @@ export const bookings = pgTable(
     clientNotes: text("client_notes"),
     therapistNotes: text("therapist_notes"),
     joinUrl: text("join_url"),
+    /**
+     * Total seats for this session including the host. 1 = a normal solo
+     * session; > 1 means the host may invite friends to co-join (see
+     * `booking_participants`). Occupied seats = accepted participant rows.
+     */
+    groupCapacity: integer("group_capacity").notNull().default(1),
+    /**
+     * When the 24h pre-session reminder email was sent, or NULL if not yet
+     * sent. This is the idempotency key for the reminder scan
+     * (`src/modules/booking/lib/send-due-reminders.ts`): a booking is only
+     * "due" a reminder while this is NULL. The partial index supporting that
+     * scan is created in the raw SQL migration (drizzle-kit cannot express the
+     * `WHERE` predicate here) — see `drizzle/0001_mvp_gaps.sql`.
+     */
+    reminderSentAt: timestamp("reminder_sent_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
+    /**
+     * When the optional ~1h pre-session reminder was sent (NULL = not yet).
+     * Separate idempotency key from `reminderSentAt` (the 24h reminder) so the
+     * two passes are independent. Partial index in `drizzle/0002_demo_features.sql`.
+     */
+    reminder1hSentAt: timestamp("reminder_1h_sent_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true, mode: "date" }),
     cancelledBy: text("cancelled_by").references(() => users.id, {
       onDelete: "set null",
@@ -81,3 +115,51 @@ export const bookings = pgTable(
 
 export type Booking = typeof bookings.$inferSelect;
 export type NewBooking = typeof bookings.$inferInsert;
+
+/**
+ * booking_participants: the seat ledger for a group session.
+ *
+ * The host is inserted as `(role: "host", status: "accepted")` when group mode
+ * is enabled; invited friends are `(role: "guest", status: "invited")` and
+ * become "accepted" when they join (subject to `bookings.groupCapacity`, which
+ * is enforced under a row lock in the invite/accept cores). `bookings.clientId`
+ * remains the owner/source of truth.
+ */
+export const PARTICIPANT_ROLE = ["host", "guest"] as const;
+export type ParticipantRole = (typeof PARTICIPANT_ROLE)[number];
+
+export const PARTICIPANT_STATUS = ["invited", "accepted", "declined"] as const;
+export type ParticipantStatus = (typeof PARTICIPANT_STATUS)[number];
+
+export const bookingParticipants = pgTable(
+  "booking_participants",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    bookingId: text("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role", { enum: PARTICIPANT_ROLE }).notNull(),
+    status: text("status", { enum: PARTICIPANT_STATUS })
+      .notNull()
+      .default("invited"),
+    invitedAt: timestamp("invited_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+    respondedAt: timestamp("responded_at", { withTimezone: true, mode: "date" }),
+  },
+  (table) => ({
+    pairKey: uniqueIndex("booking_participants_pair_key").on(
+      table.bookingId,
+      table.clientId,
+    ),
+    clientIdx: index("booking_participants_client_idx").on(table.clientId),
+    bookingIdx: index("booking_participants_booking_idx").on(table.bookingId),
+  }),
+);
+export type BookingParticipant = typeof bookingParticipants.$inferSelect;
+export type NewBookingParticipant = typeof bookingParticipants.$inferInsert;

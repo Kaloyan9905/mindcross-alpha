@@ -126,6 +126,137 @@ The MindCross team`;
 }
 
 /**
+ * Pre-session reminder email. `kind` selects the framing: "24h" (the main
+ * reminder, the default) or "1h" (a short "starting soon" nudge).
+ */
+export function bookingReminder(params: {
+  clientName: string;
+  therapistName: string;
+  startsAt: Date;
+  joinUrl: string | null;
+  kind?: "24h" | "1h";
+}): RenderedEmail {
+  const { clientName, therapistName, startsAt, joinUrl, kind = "24h" } = params;
+  const when = formatWhen(startsAt);
+  const greetingName = clientName.trim() || "there";
+
+  const soon = kind === "1h";
+  const subject = soon
+    ? `Starting soon: your session with ${therapistName}`
+    : `Reminder: your session with ${therapistName} is coming up`;
+  const heading = soon ? "Your session is starting soon" : "Your session is coming up";
+  const intro = soon
+    ? `Your session with <strong>${therapistName}</strong> starts in about an hour. We are looking forward to supporting you.`
+    : `This is a friendly reminder that your session with <strong>${therapistName}</strong> is coming up. We are looking forward to supporting you.`;
+  const introText = soon
+    ? `Your session with ${therapistName} starts in about an hour. We are looking forward to supporting you.`
+    : `This is a friendly reminder that your session with ${therapistName} is coming up. We are looking forward to supporting you.`;
+
+  const joinHtml = joinUrl
+    ? `<p style="margin:0 0 16px;font-size:14px;line-height:1.6;">
+         When it is time, join your session here:<br />
+         <a href="${joinUrl}" style="color:#4f46e5;font-weight:bold;">${joinUrl}</a>
+       </p>`
+    : `<p style="margin:0 0 16px;font-size:14px;line-height:1.6;">
+         Your therapist will share the meeting link with you before the session.
+       </p>`;
+
+  const html = shell(
+    heading,
+    `<p style="margin:0 0 16px;font-size:14px;line-height:1.6;">Hi ${greetingName},</p>
+     <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">${intro}</p>
+     <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">
+       <strong>When:</strong> ${when}
+     </p>
+     ${joinHtml}
+     <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">
+       If you can no longer attend, you can cancel any time from your account so
+       the slot opens up for someone else.
+     </p>
+     <p style="margin:0;font-size:14px;line-height:1.6;">
+       Take care,<br />The MindCross team
+     </p>`,
+  );
+
+  const joinText = joinUrl
+    ? `Join your session here when it is time:\n${joinUrl}`
+    : "Your therapist will share the meeting link with you before the session.";
+
+  const text = `Hi ${greetingName},
+
+${introText}
+
+When: ${when}
+
+${joinText}
+
+If you can no longer attend, you can cancel any time from your account so the slot opens up for someone else.
+
+Take care,
+The MindCross team`;
+
+  return { subject, html, text };
+}
+
+/**
+ * Sent to a client when they move a booking to a new time.
+ */
+export function bookingRescheduled(params: {
+  clientName: string;
+  therapistName: string;
+  startsAt: Date;
+  joinUrl: string | null;
+}): RenderedEmail {
+  const { clientName, therapistName, startsAt, joinUrl } = params;
+  const when = formatWhen(startsAt);
+  const greetingName = clientName.trim() || "there";
+
+  const subject = `Your session with ${therapistName} has been moved`;
+
+  const joinHtml = joinUrl
+    ? `<p style="margin:0 0 16px;font-size:14px;line-height:1.6;">
+         When it is time, join your session here:<br />
+         <a href="${joinUrl}" style="color:#4f46e5;font-weight:bold;">${joinUrl}</a>
+       </p>`
+    : `<p style="margin:0 0 16px;font-size:14px;line-height:1.6;">
+         Your therapist will share the meeting link with you before the session.
+       </p>`;
+
+  const html = shell(
+    "Your session has been rescheduled",
+    `<p style="margin:0 0 16px;font-size:14px;line-height:1.6;">Hi ${greetingName},</p>
+     <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">
+       Your session with <strong>${therapistName}</strong> has been moved to a
+       new time. Here are the updated details.
+     </p>
+     <p style="margin:0 0 16px;font-size:14px;line-height:1.6;">
+       <strong>New time:</strong> ${when}
+     </p>
+     ${joinHtml}
+     <p style="margin:0;font-size:14px;line-height:1.6;">
+       Take care,<br />The MindCross team
+     </p>`,
+  );
+
+  const joinText = joinUrl
+    ? `Join your session here when it is time:\n${joinUrl}`
+    : "Your therapist will share the meeting link with you before the session.";
+
+  const text = `Hi ${greetingName},
+
+Your session with ${therapistName} has been moved to a new time. Here are the updated details.
+
+New time: ${when}
+
+${joinText}
+
+Take care,
+The MindCross team`;
+
+  return { subject, html, text };
+}
+
+/**
  * Notification sent to a client when their booking is cancelled.
  */
 export function bookingCancellation(params: {

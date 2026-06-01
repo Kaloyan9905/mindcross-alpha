@@ -30,21 +30,19 @@ const STATUS_LABELS: Record<TherapistStatus, string> = {
  * Status changer for a single therapist row.
  *
  * Renders a Select over the full `THERAPIST_STATUS` enum. Picking a value
- * other than the current one calls `setTherapistStatusAction` with the admin's
- * `reviewerId` (passed in from the Server Component page). The action returns
- * a discriminated `{ ok }` result; on failure we toast `error` and leave the
+ * other than the current one calls `setTherapistStatusAction`, which
+ * self-authorizes server-side (`getAdminUser()`). The action returns a
+ * discriminated `{ ok }` result; on failure we toast `error` and leave the
  * Select on its previous value.
  */
 export function TherapistStatusActions({
   therapistId,
   displayName,
   currentStatus,
-  reviewerId,
 }: {
   therapistId: string;
   displayName: string;
   currentStatus: TherapistStatus;
-  reviewerId: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
@@ -57,7 +55,6 @@ export function TherapistStatusActions({
       const result = await setTherapistStatusAction({
         therapistId,
         status: nextStatus,
-        reviewerId,
       });
 
       if (!result.ok) {

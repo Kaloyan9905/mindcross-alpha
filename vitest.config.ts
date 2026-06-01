@@ -39,6 +39,11 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // The suite shares ONE real Postgres and several files mutate the same
+    // rows (e.g. booking.test and reminder.test both consume availability
+    // slots). Run test files sequentially so they don't race on shared state —
+    // correctness over a small amount of wall-clock.
+    fileParallelism: false,
     // Tests hit a real Postgres instance — give them generous headroom.
     testTimeout: 20_000,
     hookTimeout: 20_000,

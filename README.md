@@ -23,14 +23,22 @@ Next.js application.
 - **Therapist profiles** (`/therapists/[slug]`) — public profile with bio,
   languages, specializations, and bookable availability slots.
 - **Booking** — a signed-in client books a free session into an open availability
-  slot; the slot is flipped to booked transactionally. Sessions can be cancelled.
-- **Client account** (`/account`) — signed-in clients see their bookings.
+  slot; the slot is flipped to booked transactionally, and a confirmation email
+  (with the therapist's join link) is sent. Sessions can be cancelled. Booking
+  and cancellation are bound to the authenticated session, not a client-supplied id.
+- **24h reminder email** — an idempotent scan (`/api/cron/reminders`, driven by a
+  cron trigger) emails clients ~24h before their session. See **Background jobs**.
+- **Client account** (`/account`) — signed-in clients see their bookings and can
+  request account deletion (GDPR right to erasure).
 - **Careers / "Join as a therapist"** (`/join-as-therapist`) — an application form
   that writes to `therapist_applications` for admin review.
-- **Admin panel** (`/admin`, `/admin/therapists`, `/admin/bookings`) — review and
-  approve applications, manage therapist status, and view bookings.
-- **Authentication** — email + password via Auth.js v5 (Credentials provider,
-  argon2id hashing, JWT sessions). Auth-gated routes redirect to `/login`.
+- **Admin panel** (`/admin`, `/admin/therapists`, `/admin/bookings`, `/admin/users`)
+  — review and approve applications, manage therapist status, view bookings, and
+  process GDPR account erasures. Mutating admin actions self-authorize server-side.
+- **Authentication & consent** — email + password via Auth.js v5 (Credentials
+  provider, argon2id hashing, JWT sessions). Auth-gated routes redirect to
+  `/login`. Signup captures GDPR consent (timestamp + policy version), linked to
+  the static `/privacy` and `/disclaimer` pages.
 
 ---
 
@@ -95,6 +103,7 @@ Copy `.env.example` to `.env.local` and fill it in:
 | `DATABASE_URL`     | yes      | Postgres connection string.                                        |
 | `AUTH_SECRET`      | yes      | Secret for signing/encrypting Auth.js JWTs. Min 16 chars.          |
 | `AUTH_TRUST_HOST`  | no       | `"true"` for local dev and Vercel.                                 |
+| `CRON_SECRET`      | prod     | Bearer secret for the cron job endpoints (`/api/cron/*`). Optional in dev; required in production. |
 | `NODE_ENV`         | no       | `development` / `production` / `test`. Defaults to `development`.  |
 
 Generate an `AUTH_SECRET`:
@@ -172,13 +181,16 @@ Both scripts read `DATABASE_URL` from `.env.local` (and `.env`).
 
 ## Tests
 
-Integration tests live in `tests/*.test.ts` and run against a live Postgres.
+Integration tests live in `tests/*.test.ts` and run against a live Postgres
+(start one and seed it first — see **Running locally**).
 
 ```bash
-npx vitest run
+pnpm test          # = vitest run (npx vitest run also works)
 ```
 
-Current suite: 21 tests across identity, therapists, booking, and admin.
+Current suite: 25 tests across identity, therapists, booking, admin, and the 24h
+reminder scan. Test files run sequentially (`fileParallelism: false` in
+`vitest.config.ts`) because several share the same Postgres rows.
 
 ---
 
@@ -197,10 +209,30 @@ see the Windows note above):
 | `db:generate`       | `drizzle-kit generate`   | Generate a migration from the schema.            |
 | `db:migrate`        | `tsx src/lib/db/migrate.ts` | Apply pending migrations.                     |
 | `db:seed`           | `tsx scripts/seed.ts`    | Seed dev data.                                   |
+| `reminders:run`     | `tsx scripts/send-due-reminders.ts` | Run the 24h reminder scan once (local/cron-less). |
 | `db:push`           | `drizzle-kit push`       | Push schema directly (dev only — skips migrations). |
 | `db:studio`         | `drizzle-kit studio`     | Drizzle Studio (web GUI).                        |
+| `test`              | `vitest run`             | Run the integration test suite (needs Postgres). |
 
-Tests are run with `npx vitest run` (no `package.json` script).
+---
+
+## Background jobs
+
+The only non-synchronous work at MVP is the **24h reminder email**. It is a €0,
+schedule-agnostic scan rather than a durable Inngest function (see
+`docs` / Confluence 9.5 Pattern 3):
+
+- **Core:** `sendDueReminders()` (`src/modules/booking/lib/send-due-reminders.ts`)
+  finds confirmed bookings starting within 24h that have no `reminder_sent_at`,
+  claims each row atomically (`UPDATE … WHERE reminder_sent_at IS NULL`), and
+  emails the client. Idempotent and concurrency-safe — overlapping runs never
+  double-send, and a missed run catches up on the next tick.
+- **Trigger:** `POST /api/cron/reminders`, guarded by `CRON_SECRET`
+  (`Authorization: Bearer <CRON_SECRET>`). Point a free scheduler at it every
+  15–60 min — a Cloudflare Cron Trigger (`[triggers] crons = ["*/30 * * * *"]`),
+  a GitHub Actions schedule, or any cron. In production a missing `CRON_SECRET`
+  makes the endpoint refuse to run.
+- **Local:** `pnpm reminders:run` invokes the same scan from the CLI.
 
 ---
 

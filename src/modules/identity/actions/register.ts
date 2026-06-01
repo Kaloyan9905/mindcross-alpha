@@ -6,6 +6,7 @@ import { uuidv7 } from "uuidv7";
 import { getDb } from "@/lib/db";
 import { users } from "@/modules/identity/db/schema";
 import { hashPassword } from "@/modules/identity/lib/password";
+import { CONSENT_POLICY_VERSION } from "@/modules/identity/lib/consent";
 import {
   registerSchema,
   type RegisterInput,
@@ -66,6 +67,11 @@ export async function registerAction(
       securityStamp: uuidv7(),
       // MVP: email verification skipped — mark verified immediately.
       emailVerified: now,
+      // GDPR: persist the consent the user just gave. `registerSchema` requires
+      // `consent === true`, so reaching this insert means consent was given —
+      // record when, and to which policy version.
+      consentAcceptedAt: now,
+      consentPolicyVersion: CONSENT_POLICY_VERSION,
       createdAt: now,
       updatedAt: now,
     });

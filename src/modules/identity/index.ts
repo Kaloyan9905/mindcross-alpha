@@ -13,15 +13,21 @@ export { auth, signIn, signOut, handlers } from "@/modules/identity/lib/auth";
 export {
   getCurrentUser,
   requireUser,
-  requireRole,
 } from "@/modules/identity/lib/server-helpers";
 export type { SessionUser } from "@/modules/identity/lib/server-helpers";
+
+// --- Queries ---------------------------------------------------------------
+export { listUsersAdmin } from "@/modules/identity/queries/list-users-admin";
+export type { UserAdminRow } from "@/modules/identity/queries/list-users-admin";
 
 // --- Server actions --------------------------------------------------------
 export { registerAction } from "@/modules/identity/actions/register";
 export type { RegisterResult } from "@/modules/identity/actions/register";
 export { requestDeletionAction } from "@/modules/identity/actions/request-deletion";
 export type { RequestDeletionResult } from "@/modules/identity/actions/request-deletion";
+
+// --- Consent (GDPR) --------------------------------------------------------
+export { CONSENT_POLICY_VERSION } from "@/modules/identity/lib/consent";
 
 // --- Form schemas + inferred input types ----------------------------------
 export {

@@ -1,4 +1,4 @@
-import { type SQL, and, asc, eq, sql } from "drizzle-orm";
+import { type SQL, and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import {
   type TherapistGender,
@@ -26,6 +26,7 @@ export type TherapistSummary = {
   languages: string[];
   specializations: string[];
   gender: TherapistGender | null;
+  verified: boolean;
 };
 
 /** Paginated result envelope returned by `findTherapists`. */
@@ -60,7 +61,7 @@ export async function findTherapists(
   filter: TherapistFilter,
 ): Promise<FindTherapistsResult> {
   const db = getDb();
-  const { languages, specializations, gender, migrationExperience, page, pageSize } =
+  const { languages, specializations, gender, migrationExperience, sort, page, pageSize } =
     filter;
 
   const conditions: SQL[] = [eq(therapists.status, "active")];
@@ -89,6 +90,14 @@ export async function findTherapists(
   const whereClause = and(...conditions);
   const offset = (page - 1) * pageSize;
 
+  // Ordering is a plain user-chosen sort, NOT a relevance score.
+  const orderBy =
+    sort === "experience"
+      ? [desc(therapists.yearsOfExperience), asc(therapists.displayName)]
+      : sort === "recent"
+        ? [desc(therapists.createdAt)]
+        : [asc(therapists.displayName)];
+
   const [rows, countRows] = await Promise.all([
     db
       .select({
@@ -101,10 +110,11 @@ export async function findTherapists(
         languages: therapists.languages,
         specializations: therapists.specializations,
         gender: therapists.gender,
+        verified: therapists.verified,
       })
       .from(therapists)
       .where(whereClause)
-      .orderBy(asc(therapists.displayName))
+      .orderBy(...orderBy)
       .limit(pageSize)
       .offset(offset),
     db

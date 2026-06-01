@@ -89,23 +89,37 @@ inside `src/modules/therapists/` to avoid duplication.
 
 ```
 src/modules/<name>/
-  index.ts          ONLY re-exports — no logic
+  index.ts          ONLY re-exports — the module's public API. No logic.
   db/
     schema.ts       Drizzle tables owned by this module
-  server/           server-only code (queries, server actions, mutations)
-    queries.ts
-    actions.ts
-    <feature>.ts
-  lib/              pure helpers shared inside the module
-  ui/               module-specific React components (e.g. TherapistCard).
-                    Generic primitives live in src/components/ui/* and are
-                    owned by the UI/UX agent — do not put them here.
-  __tests__/        vitest unit tests
+  actions/          server actions (mutations) — one file per action, each
+    <action>.ts     marked "use server". Resolve the session here; delegate to
+                    a trusted core where one exists.
+  queries/          read-only queries — one file per query
+    <query>.ts
+  lib/              server-only helpers + trusted cores shared inside the
+                    module. A "core" (e.g. booking/lib/create-booking.ts) holds
+                    the real logic and takes an already-authenticated id; the
+                    matching action/ wrapper resolves the session and calls it.
+  components/       module-specific React components (e.g. login-form.tsx).
+                    Generic primitives live in src/components/ui/*.
 ```
+
+Not every module has every folder — `matching` is queries-only, `notifications`
+is lib-only, `admin` owns no tables (it composes the others behind an access
+policy). Integration tests live in the repo-root `tests/`, not per module.
 
 Routes (`src/app/...`) **never** define DB queries or business logic
 themselves. They import from the relevant module's `index.ts`, validate
 input with zod, and render the result.
+
+**Barrel discipline & one exception.** Cross-module imports go through the
+module's `index.ts`. The deliberate exception is `"use client"` components: they
+deep-import the specific `"use server"` action file (e.g.
+`@/modules/booking/actions/create-booking`) and import runtime values such as
+enums from `db/schema` directly. Importing those from the barrel would pull
+server-only code (next-auth, argon2) into the client bundle and break the build.
+`import type { … }` from a barrel is always safe (types are erased).
 
 ---
 
@@ -117,7 +131,7 @@ Seven tables, three modules. All in the public schema, snake_case names.
 | ------------------------ | ---------- | ---------------------------------------------------------------------- |
 | `users`                  | identity   | Authenticated identities. One row per human (client, therapist, admin).|
 | `accounts`               | identity   | Auth.js OAuth provider links keyed on (provider, provider_account_id). |
-| `sessions`               | identity   | Auth.js DB-strategy sessions. Token → user mapping with expiry.        |
+| `sessions`               | identity   | Part of the Auth.js Drizzle-adapter schema. Unused at runtime — the app uses the JWT session strategy (Credentials provider), so sessions live in the cookie, not this table. |
 | `verification_tokens`    | identity   | Auth.js email-link verification tokens.                                |
 | `therapists`             | therapists | Public-facing therapist profile (languages, culture, specializations). |
 | `availability_slots`     | therapists | Bookable timeslots owned 1:N by a therapist.                           |

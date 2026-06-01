@@ -7,6 +7,11 @@
 **Database:** local Postgres (Docker) on `localhost:5432` — migrated + seeded (10 active therapists, 38 availability slots, 3 pending applications)
 **Method:** `curl` against the running production server. Status via `curl -s -o /dev/null -w "%{http_code}"`; redirect routes checked **without** `-L` so the 3xx is observed directly.
 
+> **Update (2026-05-30):** This is a point-in-time record of the 2026-05-20 run.
+> **Issue #1 (login `UnsupportedStrategy`) has since been RESOLVED** — `auth.ts`
+> uses `strategy: "jwt"` and credentials sign-in works. The integration suite is
+> now **25 passing tests** (identity, therapists, booking, admin, reminders).
+
 ---
 
 ## Results Table
@@ -44,8 +49,12 @@
 
 The route-by-route GET smoke test passes cleanly, but the server logs and a follow-up POST probe surfaced **one functional defect** and **one configuration warning**. No application code was changed.
 
-### Issue #1 — BLOCKER: Login fails (`UnsupportedStrategy`)
+### Issue #1 — ✅ RESOLVED (was BLOCKER): Login fails (`UnsupportedStrategy`)
 
+- **Resolution (2026-05-30):** Fixed. `src/modules/identity/lib/auth.ts` now sets
+  `session: { strategy: "jwt" }`, which is the supported strategy for the
+  Credentials provider. Credentials sign-in works; the original report below is
+  retained for history.
 - **Severity:** High — credentials login is non-functional.
 - **Symptom:** The server log emits `[auth][error] UnsupportedStrategy: Signing in with credentials only supported if JWT strategy is enabled` repeatedly (28+ occurrences). A direct `POST /api/auth/callback/credentials` returns **HTTP 500** and increments the error count, confirming it is reproducible at runtime — not just a build-time prerender artifact.
 - **Root cause:** `src/modules/identity/lib/auth.ts` configures `session: { strategy: "database" }` while also registering a `Credentials` provider. Auth.js v5 (`next-auth@5.0.0-beta.31`) **does not support the Credentials provider with the database session strategy** — credentials sign-in requires `strategy: "jwt"`. The two settings are mutually incompatible.

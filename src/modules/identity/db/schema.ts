@@ -63,6 +63,19 @@ export const users = pgTable(
     securityStamp: text("security_stamp")
       .notNull()
       .$defaultFn(() => uuidv7()),
+    /**
+     * GDPR consent record. `consentAcceptedAt` is when the user accepted the
+     * privacy policy + therapy disclaimer + data-processing terms at signup,
+     * and `consentPolicyVersion` is which version of those documents they
+     * accepted (see `lib/consent.ts`). Nullable for pre-existing/admin-created
+     * rows; set at registration. This is the defensible "who consented, when,
+     * to what" record required for Article 9 health data.
+     */
+    consentAcceptedAt: timestamp("consent_accepted_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
+    consentPolicyVersion: text("consent_policy_version"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .notNull()
       .default(sql`now()`),

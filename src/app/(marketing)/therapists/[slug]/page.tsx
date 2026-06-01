@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, BadgeCheck } from "lucide-react";
 
 import { getTherapistBySlug } from "@/modules/therapists";
 import { getCurrentUser } from "@/modules/identity";
@@ -41,11 +41,23 @@ export async function generateMetadata({
   }
 
   const languages = therapist.languages.join(", ");
+  const title = `${therapist.displayName} — Therapist on MindCross`;
+  const description = languages
+    ? `${therapist.displayName} is a culturally-matched therapist on MindCross, speaking ${languages}.`
+    : `${therapist.displayName} is a culturally-matched therapist on MindCross.`;
+  const canonical = `/therapists/${slug}`;
+
   return {
-    title: `${therapist.displayName} — Therapist on MindCross`,
-    description: languages
-      ? `${therapist.displayName} is a culturally-matched therapist on MindCross, speaking ${languages}.`
-      : `${therapist.displayName} is a culturally-matched therapist on MindCross.`,
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      type: "profile",
+      images: therapist.photoUrl ? [therapist.photoUrl] : undefined,
+    },
   };
 }
 
@@ -86,8 +98,14 @@ export default async function TherapistDetailPage({
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <h1 className="flex items-center gap-2 text-3xl font-semibold tracking-tight">
             {therapist.displayName}
+            {therapist.verified ? (
+              <BadgeCheck
+                className="h-6 w-6 text-primary"
+                aria-label="Verified therapist"
+              />
+            ) : null}
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
             {therapist.yearsOfExperience}{" "}
@@ -99,11 +117,17 @@ export default async function TherapistDetailPage({
               </>
             ) : null}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 trust-badge-row">
+            {therapist.verified ? (
+              <Badge variant="accent" className="gap-1">
+                <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                Verified
+              </Badge>
+            ) : null}
             {therapist.migrationExperience ? (
               <Badge variant="secondary">Has lived migration experience</Badge>
             ) : null}
-            <Badge variant="outline">Free session at MVP</Badge>
+            <Badge variant="success">Free first session</Badge>
           </div>
         </div>
       </header>

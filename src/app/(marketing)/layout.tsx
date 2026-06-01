@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { getCurrentUser } from "@/modules/identity";
+import { getDictionary } from "@/lib/i18n/server";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 
@@ -14,7 +15,10 @@ export default async function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
+  const [user, { locale, dict }] = await Promise.all([
+    getCurrentUser(),
+    getDictionary(),
+  ]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -24,8 +28,12 @@ export default async function MarketingLayout({
             ? { id: user.id, name: user.name ?? null, role: user.role }
             : null
         }
+        navLabels={dict.nav}
+        locale={locale}
       />
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1">
+        {children}
+      </main>
       <Footer />
     </div>
   );

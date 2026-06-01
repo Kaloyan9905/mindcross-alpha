@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import { getAdminUser } from "@/modules/admin";
 import {
   THERAPIST_STATUS,
   type TherapistStatus,
@@ -11,13 +12,15 @@ import {
 
 /**
  * Input schema for the admin "move a therapist between statuses" action — e.g.
- * pending_review -> active, or active -> paused. `reviewerId` must be the
- * authenticated admin's user id; the admin module enforces the auth check.
+ * pending_review -> active, or active -> paused.
+ *
+ * NOTE: no caller-supplied id. The action self-authorizes via `getAdminUser()`
+ * — a `"use server"` function is an independently-invokable endpoint, so the
+ * page gate alone does not protect it.
  */
 const setTherapistStatusSchema = z.object({
   therapistId: z.string().min(1, "therapistId is required"),
   status: z.enum(THERAPIST_STATUS),
-  reviewerId: z.string().min(1, "reviewerId is required"),
 });
 
 /** Parsed status-change input. */
@@ -39,6 +42,11 @@ export type SetTherapistStatusResult =
 export async function setTherapistStatusAction(
   input: unknown,
 ): Promise<SetTherapistStatusResult> {
+  const admin = await getAdminUser();
+  if (!admin) {
+    return { ok: false, error: "You are not authorized to change therapist status." };
+  }
+
   const parsed = setTherapistStatusSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
@@ -49,6 +57,23 @@ export async function setTherapistStatusAction(
 
   try {
     const db = getDb();
+
+    // A therapist can't host sessions without a join link — block activation
+    // until one is set, so clients never book a session that can't happen.
+    if (status === "active") {
+      const [existing] = await db
+        .select({ sessionUrl: therapists.sessionUrl })
+        .from(therapists)
+        .where(eq(therapists.id, therapistId))
+        .limit(1);
+      if (!existing) return { ok: false, error: "Therapist not found." };
+      if (!existing.sessionUrl) {
+        return {
+          ok: false,
+          error: "Add a video room link to the profile before activating.",
+        };
+      }
+    }
 
     const updated = await db
       .update(therapists)

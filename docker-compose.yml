@@ -31,6 +31,13 @@ services:
       AUTH_SECRET: TLYNhyl7J6R5RAVbG3B7lErR73/SpWV3LCgBNqyihuw=
       # Trust the host header so Auth.js works behind the compose network.
       AUTH_TRUST_HOST: "true"
+      # Canonical public URL the app is reached at. The server BINDS to
+      # 0.0.0.0 (HOSTNAME in the Dockerfile), but Auth.js must build redirects
+      # and the callback-url cookie from the address the BROWSER uses. Without
+      # this, Auth.js falls back to the bind address and sends users to
+      # http://0.0.0.0:3000, which browsers refuse to load. Use http:// here so
+      # cookies are NOT marked Secure (this demo is served over plain HTTP).
+      AUTH_URL: "http://localhost:3000"
     ports:
       - "3000:3000"
     depends_on:

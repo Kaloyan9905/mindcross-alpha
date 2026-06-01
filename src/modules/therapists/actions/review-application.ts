@@ -4,6 +4,7 @@ import { z } from "zod";
 import { uuidv7 } from "uuidv7";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import { getAdminUser } from "@/modules/admin";
 import {
   therapistApplications,
   therapists,
@@ -11,14 +12,17 @@ import {
 import { uniqueSlug } from "@/modules/therapists/lib/slug";
 
 /**
- * Input schema for an admin reviewing a therapist application. `reviewerId` is
- * required — the admin module must pass the authenticated admin's user id; this
- * action does not itself perform the auth check.
+ * Input schema for an admin reviewing a therapist application.
+ *
+ * NOTE: there is NO `reviewerId` in the input. This action self-authorizes via
+ * `getAdminUser()` and derives the reviewer from the verified session — a
+ * `"use server"` function is an independently-invokable endpoint, so trusting a
+ * caller-supplied id would let any signed-in user approve/reject applications
+ * and forge the audit trail.
  */
 const reviewApplicationSchema = z.object({
   applicationId: z.string().min(1, "applicationId is required"),
   decision: z.enum(["approve", "reject"]),
-  reviewerId: z.string().min(1, "reviewerId is required"),
 });
 
 /** Parsed review input. */
@@ -48,13 +52,19 @@ export type ReviewApplicationResult =
 export async function reviewApplicationAction(
   input: unknown,
 ): Promise<ReviewApplicationResult> {
+  const admin = await getAdminUser();
+  if (!admin) {
+    return { ok: false, error: "You are not authorized to review applications." };
+  }
+  const reviewerId = admin.id;
+
   const parsed = reviewApplicationSchema.safeParse(input);
   if (!parsed.success) {
     const first = parsed.error.issues[0];
     return { ok: false, error: first?.message ?? "Invalid review request." };
   }
 
-  const { applicationId, decision, reviewerId } = parsed.data;
+  const { applicationId, decision } = parsed.data;
 
   try {
     const db = getDb();

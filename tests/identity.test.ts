@@ -16,6 +16,7 @@ import { getDb } from "@/lib/db";
 import { registerAction } from "@/modules/identity/actions/register";
 import { users } from "@/modules/identity/db/schema";
 import { hashPassword, verifyPassword } from "@/modules/identity/lib/password";
+import { CONSENT_POLICY_VERSION } from "@/modules/identity/lib/consent";
 
 // A valid password is >= 12 chars (registerSchema PASSWORD_MIN).
 const VALID_PASSWORD = "correct-horse-battery-staple";
@@ -70,12 +71,21 @@ describe("registerAction", () => {
 
     const db = getDb();
     const rows = await db
-      .select({ id: users.id, role: users.role, email: users.email })
+      .select({
+        id: users.id,
+        role: users.role,
+        email: users.email,
+        consentAcceptedAt: users.consentAcceptedAt,
+        consentPolicyVersion: users.consentPolicyVersion,
+      })
       .from(users)
       .where(eq(users.email, email));
 
     expect(rows).toHaveLength(1);
     expect(rows[0]?.role).toBe("client");
+    // GDPR: consent must be recorded with a timestamp + the current policy version.
+    expect(rows[0]?.consentAcceptedAt).toBeInstanceOf(Date);
+    expect(rows[0]?.consentPolicyVersion).toBe(CONSENT_POLICY_VERSION);
   });
 
   it("rejects registration when the email already exists", async () => {

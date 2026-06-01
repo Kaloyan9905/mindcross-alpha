@@ -10,6 +10,17 @@ export type {
 export { getFilterOptions } from "./queries/filter-options";
 export type { FilterOptions } from "./queries/filter-options";
 
+// "Find your match" — language/culture-first scored matching.
+export { findMatchesAction } from "./actions/find-matches";
+export type { FindMatchesResult } from "./actions/find-matches";
+export { findMatches } from "./queries/find-matches";
+export { scoreTherapist, rankMatches } from "./lib/score-therapists";
+export type {
+  MatchAnswers,
+  MatchCandidate,
+  MatchResult,
+} from "./lib/score-therapists";
+
 // Re-export the filter schema/type so the public find-therapist page can
 // validate its search params without reaching into the therapists module.
 export { therapistFilterSchema } from "@/modules/therapists/lib/filters";

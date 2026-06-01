@@ -7,5 +7,10 @@
 export { sendEmail } from "./lib/email";
 export type { EmailMessage } from "./lib/email";
 
-export { bookingConfirmation, bookingCancellation } from "./lib/templates";
+export {
+  bookingConfirmation,
+  bookingReminder,
+  bookingRescheduled,
+  bookingCancellation,
+} from "./lib/templates";
 export type { RenderedEmail } from "./lib/templates";

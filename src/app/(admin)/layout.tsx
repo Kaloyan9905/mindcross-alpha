@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { ExternalLink, LogOut } from "lucide-react";
 
 import { signOut } from "@/modules/identity";
 import { requireAdmin } from "@/modules/admin";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Button } from "@/components/ui/button";
 
 import { AdminSidebarNav } from "./admin-nav";
@@ -60,6 +61,13 @@ export default async function AdminLayout({
           </Link>
 
           <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              className="hidden items-center gap-1.5 rounded-md text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:inline-flex"
+            >
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              View site
+            </Link>
             <div className="hidden flex-col items-end leading-tight sm:flex">
               <span className="text-sm font-medium text-foreground">
                 {admin.name ?? admin.email ?? "Staff member"}
@@ -68,6 +76,7 @@ export default async function AdminLayout({
                 {staffRoleLabel(admin.role)}
               </span>
             </div>
+            <ThemeToggle />
             {/*
               Sign out: a form posting to an inline Server Action that calls
               Auth.js `signOut`. `signOut` clears the session + cookie and
@@ -104,7 +113,9 @@ export default async function AdminLayout({
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1">{children}</main>
+        <main id="main-content" className="min-w-0 flex-1">
+          {children}
+        </main>
       </div>
     </div>
   );

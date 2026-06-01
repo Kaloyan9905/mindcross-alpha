@@ -7,18 +7,20 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
-// Import identity bits directly from source: the `@/modules/identity` barrel
-// re-exports Auth.js `auth`, which transitively imports `next-auth` ->
-// `next/server` in a form Vitest's resolver cannot load. Same real code.
+// Import from module SOURCE files, not the barrels. The `@/modules/identity`
+// barrel re-exports Auth.js `auth`, and the `@/modules/booking` /
+// `@/modules/therapists` barrels now re-export session-bound actions that
+// transitively import `next-auth` -> `next/server` in a form Vitest's resolver
+// cannot load. These are the SAME real functions/tables — no mocking. We test
+// the trusted `createBooking` / `cancelBooking` cores directly (the actions are
+// thin session-resolving wrappers over them).
 import { registerAction } from "@/modules/identity/actions/register";
 import { users } from "@/modules/identity/db/schema";
-import { availabilitySlots } from "@/modules/therapists";
-import {
-  bookings,
-  cancelBookingAction,
-  createBookingAction,
-  listBookingsForClient,
-} from "@/modules/booking";
+import { availabilitySlots } from "@/modules/therapists/db/schema";
+import { bookings } from "@/modules/booking/db/schema";
+import { createBooking } from "@/modules/booking/lib/create-booking";
+import { cancelBooking } from "@/modules/booking/lib/cancel-booking";
+import { listBookingsForClient } from "@/modules/booking/queries/list-bookings-for-client";
 
 const VALID_PASSWORD = "correct-horse-battery-staple";
 
@@ -85,9 +87,9 @@ afterAll(async () => {
   }
 });
 
-describe("createBookingAction", () => {
+describe("createBooking (core)", () => {
   it("creates a confirmed booking and flips the slot's isBooked flag", async () => {
-    const result = await createBookingAction({ clientId, slotId });
+    const result = await createBooking({ clientId, slotId });
 
     expect(result.ok).toBe(true);
     if (!result.ok) return; // narrow for TS
@@ -112,7 +114,7 @@ describe("createBookingAction", () => {
   });
 
   it("prevents double-booking the same slot", async () => {
-    const result = await createBookingAction({ clientId, slotId });
+    const result = await createBooking({ clientId, slotId });
     expect(result.ok).toBe(false);
   });
 });
@@ -126,9 +128,9 @@ describe("listBookingsForClient", () => {
   });
 });
 
-describe("cancelBookingAction", () => {
+describe("cancelBooking (core)", () => {
   it("cancels the booking and frees the slot", async () => {
-    const result = await cancelBookingAction({ bookingId, userId: clientId });
+    const result = await cancelBooking({ bookingId, userId: clientId });
     expect(result.ok).toBe(true);
 
     const db = getDb();
@@ -148,13 +150,13 @@ describe("cancelBookingAction", () => {
   });
 
   it("is idempotent — cancelling an already-cancelled booking still returns ok", async () => {
-    const result = await cancelBookingAction({ bookingId, userId: clientId });
+    const result = await cancelBooking({ bookingId, userId: clientId });
     expect(result.ok).toBe(true);
   });
 
   it("rejects a slot that was just freed being left un-rebookable", async () => {
     // Sanity: after cancellation the slot can be booked again.
-    const result = await createBookingAction({ clientId, slotId });
+    const result = await createBooking({ clientId, slotId });
     expect(result.ok).toBe(true);
     if (result.ok) {
       // Re-point bookingId so afterAll cleans up this newer row, and free the
@@ -166,14 +168,14 @@ describe("cancelBookingAction", () => {
   });
 });
 
-describe("createBookingAction input validation", () => {
+describe("createBooking input validation", () => {
   it("rejects an empty clientId", async () => {
-    const result = await createBookingAction({ clientId: "", slotId });
+    const result = await createBooking({ clientId: "", slotId });
     expect(result.ok).toBe(false);
   });
 
   it("returns ok:false for a nonexistent slot", async () => {
-    const result = await createBookingAction({
+    const result = await createBooking({
       clientId,
       slotId: "nonexistent-slot-id-0000",
     });

@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { auth } from "@/modules/identity/lib/auth";
+import { safeCallbackUrl } from "@/lib/safe-redirect";
 import { RegisterForm } from "@/modules/identity/components/register-form";
 
 export const metadata: Metadata = {
@@ -16,12 +17,19 @@ export const metadata: Metadata = {
 };
 
 /**
- * Sign-up page. Already-authenticated users are bounced to /account.
+ * Sign-up page. Already-authenticated users are bounced to where they were
+ * headed (the validated `callbackUrl`), or /account.
  */
-export default async function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const callbackUrl = safeCallbackUrl((await searchParams).callbackUrl);
+
   const session = await auth();
   if (session?.user) {
-    redirect("/account");
+    redirect(callbackUrl);
   }
 
   return (
@@ -33,7 +41,7 @@ export default async function RegisterPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <RegisterForm />
+        <RegisterForm callbackUrl={callbackUrl} />
       </CardContent>
     </Card>
   );

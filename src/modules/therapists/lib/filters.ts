@@ -20,6 +20,11 @@ export const therapistFilterSchema = z.object({
   gender: z.enum(THERAPIST_GENDERS).optional(),
   /** Whether the therapist must have lived migration experience. */
   migrationExperience: z.boolean().optional(),
+  /**
+   * Result ordering. NOT a relevance score (matching stays filters-only) — just
+   * a stable sort the user can pick: name (A–Z), most experienced, or newest.
+   */
+  sort: z.enum(["name", "experience", "recent"]).default("name"),
   /** 1-based page index. */
   page: z.coerce.number().int().min(1).default(1),
   /** Results per page. */

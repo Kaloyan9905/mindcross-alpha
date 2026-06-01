@@ -13,7 +13,11 @@ import { describe, expect, it } from "vitest";
 // resolver cannot load. Importing the pure `isAdminRole` from its source file
 // exercises the exact same function without that runtime-only chain.
 import { isAdminRole } from "@/modules/admin/lib/policies";
-import { listTherapistsAdmin } from "@/modules/therapists";
+// Import the query from its source file, not the `@/modules/therapists` barrel:
+// the barrel now re-exports session-bound admin actions (review / status) that
+// transitively import `next-auth` -> `next/server`, which Vitest's resolver
+// cannot load. Same real query — no mocking.
+import { listTherapistsAdmin } from "@/modules/therapists/queries/list-therapists-admin";
 
 describe("isAdminRole", () => {
   it("treats admin_* roles as staff", () => {

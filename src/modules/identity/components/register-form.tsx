@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
@@ -31,12 +32,14 @@ import {
  * immediately signs the new user in via Auth.js credentials and forwards to
  * /account.
  */
-export function RegisterForm() {
+export function RegisterForm({ callbackUrl = "/account" }: { callbackUrl?: string }) {
   const router = useRouter();
   const [isPending, setIsPending] = React.useState(false);
+  const [formError, setFormError] = React.useState<string | null>(null);
 
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
+    mode: "onBlur",
     defaultValues: {
       name: "",
       email: "",
@@ -48,13 +51,22 @@ export function RegisterForm() {
     },
   });
 
+  const passwordValue = form.watch("password") ?? "";
+
   async function onSubmit(values: RegisterInput) {
     setIsPending(true);
+    setFormError(null);
     try {
       const result = await registerAction(values);
 
       if (!result.ok) {
-        toast.error(result.error);
+        // Anchor the most common error on its field; otherwise a banner.
+        if (/already exists/i.test(result.error)) {
+          form.setError("email", { message: result.error });
+          form.setFocus("email");
+        } else {
+          setFormError(result.error);
+        }
         return;
       }
 
@@ -66,17 +78,20 @@ export function RegisterForm() {
       });
 
       if (!signInResult || signInResult.error) {
-        // Rare: account exists but auto-login failed. Send them to /login.
-        toast.success("Account created. Please sign in.");
-        router.push("/login");
+        // Rare: account exists but auto-login failed. Send them to sign in,
+        // preserving where they were headed.
+        const loginHref =
+          callbackUrl && callbackUrl !== "/account"
+            ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+            : "/login";
+        router.push(loginHref);
         return;
       }
 
-      toast.success("Welcome to MindCross.");
-      router.push("/account");
+      router.push(callbackUrl);
       router.refresh();
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      setFormError("Something went wrong. Please try again.");
     } finally {
       setIsPending(false);
     }
@@ -85,6 +100,24 @@ export function RegisterForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+        {formError ? (
+          <p
+            role="alert"
+            className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+          >
+            {formError}
+          </p>
+        ) : null}
+
+        <p className="flex items-start gap-2 rounded-lg bg-secondary/40 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+          <ShieldCheck
+            className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+            aria-hidden="true"
+          />
+          Your details stay private. We only use them to sign you in — never
+          shared, no spam.
+        </p>
+
         <FormField
           control={form.control}
           name="name"
@@ -130,15 +163,20 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   placeholder="At least 12 characters"
                   {...field}
                 />
               </FormControl>
-              <FormDescription>
-                Use at least 12 characters.
+              <FormDescription
+                className={passwordValue.length >= 12 ? "text-success" : undefined}
+              >
+                {passwordValue.length >= 12
+                  ? "Looks good — 12 or more characters."
+                  : `Use at least 12 characters${
+                      passwordValue.length > 0 ? ` (${passwordValue.length}/12)` : ""
+                    }.`}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -152,8 +190,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Confirm password</FormLabel>
               <FormControl>
-                <Input
-                  type="password"
+                <PasswordInput
                   autoComplete="new-password"
                   placeholder="Re-enter your password"
                   {...field}
@@ -179,8 +216,31 @@ export function RegisterForm() {
               </FormControl>
               <div className="space-y-1 leading-tight">
                 <FormLabel className="font-normal">
-                  I accept the privacy policy and therapy disclaimer
+                  I accept the Privacy Policy and Therapy Disclaimer, and
+                  consent to the processing of my health data to provide
+                  therapy.
                 </FormLabel>
+                <p className="text-xs text-muted-foreground">
+                  Read our{" "}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/disclaimer"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    Therapy Disclaimer
+                  </Link>
+                  .
+                </p>
                 <FormMessage />
               </div>
             </FormItem>

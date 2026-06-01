@@ -14,7 +14,7 @@
 import "dotenv/config";
 import { config as loadEnv } from "dotenv";
 import { drizzle } from "drizzle-orm/node-postgres";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { Pool } from "pg";
 import { uuidv7 } from "uuidv7";
 import {
@@ -26,6 +26,13 @@ import {
   therapists,
 } from "../src/modules/therapists/db/schema";
 import { slugify } from "../src/modules/therapists/lib/slug";
+import { users } from "../src/modules/identity/db/schema";
+import { hashPassword } from "../src/modules/identity/lib/password";
+
+/** Demo: how many seeded therapists get a "Verified" badge + a login account. */
+const VERIFIED_COUNT = 5;
+const THERAPIST_LOGIN_COUNT = 2;
+const THERAPIST_LOGIN_PASSWORD = "Therapist12345!";
 
 // `.env` is loaded by the import above; also pick up `.env.local` (the file
 // the rest of the app uses) without overriding anything already set.
@@ -338,7 +345,7 @@ async function main() {
     const slotRows: NewAvailabilitySlot[] = [];
     const usedSlugs = new Set<string>();
 
-    for (const t of SEED_THERAPISTS) {
+    SEED_THERAPISTS.forEach((t, index) => {
       const { slotPlan, ...profile } = t;
       const id = uuidv7();
 
@@ -355,6 +362,7 @@ async function main() {
         ...profile,
         id,
         slug,
+        verified: index < VERIFIED_COUNT,
         createdAt: now,
         updatedAt: now,
       });
@@ -370,7 +378,7 @@ async function main() {
           createdAt: now,
         });
       }
-    }
+    });
 
     await db.insert(therapists).values(therapistRows);
     console.log(`Inserted ${therapistRows.length} therapists.`);
@@ -383,6 +391,46 @@ async function main() {
     );
     await db.insert(therapistApplications).values(applicationRows);
     console.log(`Inserted ${applicationRows.length} therapist applications.`);
+
+    // Demo therapist logins: link a user (role 'therapist') to the first few
+    // seeded therapists so the therapist self-service area is demoable. Idempotent.
+    const passwordHash = await hashPassword(THERAPIST_LOGIN_PASSWORD);
+    const logins: string[] = [];
+    for (const t of therapistRows.slice(0, THERAPIST_LOGIN_COUNT)) {
+      if (!t.id) continue; // ids are assigned above; narrow the optional type.
+      const [existing] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, t.email))
+        .limit(1);
+
+      let userId: string;
+      if (existing) {
+        userId = existing.id;
+        await db
+          .update(users)
+          .set({ role: "therapist", passwordHash, emailVerified: now, updatedAt: now })
+          .where(eq(users.id, userId));
+      } else {
+        userId = uuidv7();
+        await db.insert(users).values({
+          id: userId,
+          name: t.displayName,
+          email: t.email,
+          passwordHash,
+          role: "therapist",
+          securityStamp: uuidv7(),
+          emailVerified: now,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+      await db.update(therapists).set({ userId, updatedAt: now }).where(eq(therapists.id, t.id));
+      logins.push(t.email);
+    }
+    console.log(
+      `Linked ${logins.length} therapist login(s): ${logins.join(", ")} (password: ${THERAPIST_LOGIN_PASSWORD})`,
+    );
 
     console.log("Seed complete.");
   } finally {
