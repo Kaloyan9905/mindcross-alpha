@@ -55,13 +55,15 @@ export default async function SessionPage({
       ? (info?.clientName ?? "Your client")
       : (info?.therapistName ?? "Your therapist");
 
+  const iceServers = await getIceServers();
+
   return (
     <MeetingRoom
       bookingId={bookingId}
       selfId={user.id}
       displayName={user.name ?? "Guest"}
       role={membership.role}
-      iceServers={getIceServers()}
+      iceServers={iceServers}
       otherPartyName={otherPartyName}
     />
   );

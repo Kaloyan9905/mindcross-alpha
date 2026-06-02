@@ -141,20 +141,20 @@ describe("crisis-lines regionByCode", () => {
 });
 
 describe("meeting getIceServers", () => {
-  it("returns public STUN and no TURN by default", () => {
+  it("returns public STUN and no TURN by default", async () => {
     delete process.env.MEETING_TURN_URL;
-    const s = getIceServers();
+    const s = await getIceServers();
     expect(s.length).toBeGreaterThan(0);
     expect(s.some((x) => String(x.urls).startsWith("stun:"))).toBe(true);
     expect(s.some((x) => String(x.urls).startsWith("turn:"))).toBe(false);
   });
 
-  it("appends a configured TURN relay with static credentials", () => {
+  it("appends a configured TURN relay with static credentials", async () => {
     process.env.MEETING_TURN_URL = "turn:turn.example.com:3478";
     process.env.MEETING_TURN_USERNAME = "u";
     process.env.MEETING_TURN_CREDENTIAL = "p";
     try {
-      const turn = getIceServers().find((x) => String(x.urls).startsWith("turn:"));
+      const turn = (await getIceServers()).find((x) => String(x.urls).startsWith("turn:"));
       expect(turn?.username).toBe("u");
       expect(turn?.credential).toBe("p");
     } finally {
@@ -164,11 +164,11 @@ describe("meeting getIceServers", () => {
     }
   });
 
-  it("mints short-lived coturn credentials from a shared secret", () => {
+  it("mints short-lived coturn credentials from a shared secret", async () => {
     process.env.MEETING_TURN_URL = "turn:turn.example.com:3478";
     process.env.MEETING_TURN_SECRET = "shared-secret";
     try {
-      const turn = getIceServers().find((x) => String(x.urls).startsWith("turn:"));
+      const turn = (await getIceServers()).find((x) => String(x.urls).startsWith("turn:"));
       // username is a future unix-second expiry; credential is base64 HMAC.
       const expiry = Number(turn?.username);
       expect(Number.isInteger(expiry)).toBe(true);

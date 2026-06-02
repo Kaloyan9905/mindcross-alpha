@@ -41,7 +41,7 @@ export async function joinRoomAction(input: {
     selfId: user.id,
     displayName: user.name ?? "Guest",
     role: membership.role,
-    iceServers: getIceServers(),
+    iceServers: await getIceServers(),
   };
 }
 

@@ -16,10 +16,14 @@ const ServerEnvSchema = z.object({
   // handles most calls; set these to close the NAT gap for users behind
   // symmetric NAT / restrictive firewalls (e.g. a self-hosted coturn). When
   // unset, the room runs STUN-only. Read by `@/modules/meeting/lib/ice`.
+  // Cloudflare TURN (managed, free) — the app mints short-lived ICE servers
+  // from these per join. Highest-priority TURN source when set.
+  CLOUDFLARE_TURN_KEY_ID: z.string().optional(),
+  CLOUDFLARE_TURN_API_TOKEN: z.string().optional(),
+  // Self-hosted relay alternative. Preferred: a coturn `use-auth-secret` value —
+  // the app mints short-lived HMAC credentials from it (no per-user TURN
+  // account). Falls back to the static username/credential pair below if unset.
   MEETING_TURN_URL: z.string().optional(),
-  // Preferred: a coturn `use-auth-secret` value — the app mints short-lived
-  // HMAC credentials from it (no per-user TURN account). Falls back to the
-  // static username/credential pair below if unset.
   MEETING_TURN_SECRET: z.string().optional(),
   MEETING_TURN_USERNAME: z.string().optional(),
   MEETING_TURN_CREDENTIAL: z.string().optional(),

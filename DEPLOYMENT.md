@@ -55,7 +55,9 @@ In **Project → Settings → Environment Variables**, set:
 | `AUTH_TRUST_HOST` | `true` | Lets Auth.js trust the deployment host. |
 | `AUTH_URL` | `https://<your-app>.vercel.app` | Recommended on your production domain. Optional for preview URLs (cookies are still Secure on Vercel). |
 | `CRON_SECRET` | a 32-byte random string | Guards `/api/cron/reminders`; Vercel sends it automatically to the cron. |
-| `MEETING_TURN_URL` | `turn:<host>:3478` | Optional. TURN relay for the in-app video call (see §7). Omit for STUN-only. |
+| `CLOUDFLARE_TURN_KEY_ID` | Cloudflare TURN key ID | Optional but recommended for calls to connect across networks (see §7). |
+| `CLOUDFLARE_TURN_API_TOKEN` | Cloudflare TURN API token | Optional. Paired with the key ID; the app mints short-lived TURN credentials. |
+| `MEETING_TURN_URL` | `turn:<host>:3478` | Optional. Self-hosted coturn relay instead of Cloudflare (see §7). |
 | `MEETING_TURN_SECRET` | coturn `static-auth-secret` | Optional. The app mints short-lived TURN credentials from it. |
 
 `NODE_ENV=production` is set by Vercel automatically — don't add it.
@@ -116,17 +118,32 @@ applies them.)
 ## 7. Optional: reliable video calls behind strict firewalls (TURN)
 
 The in-app session room (`/session/[bookingId]`) is **peer-to-peer WebRTC** and
-works out of the box using free public STUN — no config, no account. But ~10–20%
-of users behind **symmetric NAT / CGNAT / locked-down firewalls** (common on
-mobile and shelter/campus networks) can't connect peer-to-peer and need a **TURN
-relay**. There is no free *no-account* public TURN anymore, so the free path is
-to **self-host [coturn](https://github.com/coturn/coturn)** on any small server.
+works out of the box using free public STUN — no config, no account. But two
+people on **different home networks** (and ~10–20% of users behind symmetric NAT
+/ CGNAT / locked-down firewalls) can't connect peer-to-peer and need a **TURN
+relay**. Media stays end-to-end encrypted (DTLS-SRTP) — a TURN relay only
+forwards encrypted packets, it can't read them.
 
-Media stays end-to-end encrypted (DTLS-SRTP) — a TURN relay only forwards
-encrypted packets, it can't read them.
+### Easiest: Cloudflare TURN (free, no credit card) — recommended
 
-**1. Run coturn on a cheap/free VPS** (e.g. Oracle Cloud Always-Free). Open UDP
-`3478` and the relay range, and pick a strong secret:
+1. At **[dash.cloudflare.com](https://dash.cloudflare.com)** → **Realtime** →
+   **TURN** → **Create**. Copy the **Turn Token ID** (key ID) and the **API
+   Token**.
+2. In Vercel project env, set:
+   ```
+   CLOUDFLARE_TURN_KEY_ID=<the key ID>
+   CLOUDFLARE_TURN_API_TOKEN=<the API token>
+   ```
+3. Redeploy. The app mints short-lived ICE servers from your key per join
+   (including TURN over TCP/TLS on :443, which gets through almost any firewall).
+   Done — calls now connect across networks.
+
+### Alternative: self-host coturn (free, fully owned)
+
+If you'd rather not use Cloudflare, **self-host
+[coturn](https://github.com/coturn/coturn)** on any small server (e.g. Oracle
+Cloud Always-Free). Open UDP `3478` and the relay range, and pick a strong
+secret:
 
 ```bash
 docker run -d --name coturn --network host coturn/coturn:4.6-alpine \
