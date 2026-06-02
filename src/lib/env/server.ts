@@ -20,6 +20,10 @@ const ServerEnvSchema = z.object({
   // from these per join. Highest-priority TURN source when set.
   CLOUDFLARE_TURN_KEY_ID: z.string().optional(),
   CLOUDFLARE_TURN_API_TOKEN: z.string().optional(),
+  // Metered Open Relay TURN (free, no credit card). `<subdomain>` is the part
+  // before `.metered.live`. Used when Cloudflare is not configured.
+  METERED_TURN_SUBDOMAIN: z.string().optional(),
+  METERED_TURN_API_KEY: z.string().optional(),
   // Self-hosted relay alternative. Preferred: a coturn `use-auth-secret` value —
   // the app mints short-lived HMAC credentials from it (no per-user TURN
   // account). Falls back to the static username/credential pair below if unset.

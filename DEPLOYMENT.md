@@ -55,10 +55,10 @@ In **Project → Settings → Environment Variables**, set:
 | `AUTH_TRUST_HOST` | `true` | Lets Auth.js trust the deployment host. |
 | `AUTH_URL` | `https://<your-app>.vercel.app` | Recommended on your production domain. Optional for preview URLs (cookies are still Secure on Vercel). |
 | `CRON_SECRET` | a 32-byte random string | Guards `/api/cron/reminders`; Vercel sends it automatically to the cron. |
-| `CLOUDFLARE_TURN_KEY_ID` | Cloudflare TURN key ID | Optional but recommended for calls to connect across networks (see §7). |
-| `CLOUDFLARE_TURN_API_TOKEN` | Cloudflare TURN API token | Optional. Paired with the key ID; the app mints short-lived TURN credentials. |
-| `MEETING_TURN_URL` | `turn:<host>:3478` | Optional. Self-hosted coturn relay instead of Cloudflare (see §7). |
-| `MEETING_TURN_SECRET` | coturn `static-auth-secret` | Optional. The app mints short-lived TURN credentials from it. |
+| `METERED_TURN_SUBDOMAIN` | Metered app subdomain | Optional, recommended for cross-network calls — free TURN, no card (see §7). |
+| `METERED_TURN_API_KEY` | Metered API key | Optional. Paired with the subdomain. |
+| `CLOUDFLARE_TURN_KEY_ID` / `CLOUDFLARE_TURN_API_TOKEN` | Cloudflare TURN key | Optional alternative TURN (needs a payment method on file even at $0). |
+| `MEETING_TURN_URL` / `MEETING_TURN_SECRET` | self-hosted coturn / public relay | Optional. Self-host or the no-signup public relay (see §7). |
 
 `NODE_ENV=production` is set by Vercel automatically — don't add it.
 
@@ -124,19 +124,36 @@ people on **different home networks** (and ~10–20% of users behind symmetric N
 relay**. Media stays end-to-end encrypted (DTLS-SRTP) — a TURN relay only
 forwards encrypted packets, it can't read them.
 
-### Easiest: Cloudflare TURN (free, no credit card) — recommended
+### Recommended (free, no credit card): Metered Open Relay
 
-1. At **[dash.cloudflare.com](https://dash.cloudflare.com)** → **Realtime** →
-   **TURN** → **Create**. Copy the **Turn Token ID** (key ID) and the **API
-   Token**.
+1. Sign up free at **[metered.ca](https://www.metered.ca/)** (no card), create an
+   app, and copy your **subdomain** (the `your-app` in `your-app.metered.live`)
+   and **API key**.
 2. In Vercel project env, set:
    ```
-   CLOUDFLARE_TURN_KEY_ID=<the key ID>
-   CLOUDFLARE_TURN_API_TOKEN=<the API token>
+   METERED_TURN_SUBDOMAIN=<your-app>
+   METERED_TURN_API_KEY=<your API key>
    ```
-3. Redeploy. The app mints short-lived ICE servers from your key per join
-   (including TURN over TCP/TLS on :443, which gets through almost any firewall).
-   Done — calls now connect across networks.
+3. Redeploy. Calls now connect across networks (20 GB/month free).
+
+### Zero signup (public shared relay)
+
+For a quick test with no account at all, point at Metered's public relay. It may
+be rate-limited, but it's free and instant — uses the existing coturn env vars:
+```
+MEETING_TURN_URL=turn:staticauth.openrelay.metered.ca:443
+MEETING_TURN_SECRET=openrelayprojectsecret
+```
+
+### Cloudflare TURN
+
+Also free and very reliable, but the Realtime dashboard requires a **payment
+method on file** (card, PayPal, or crypto) even though usage is $0 within the
+free allowance. Create a key at **dash.cloudflare.com → Realtime → TURN**, then:
+```
+CLOUDFLARE_TURN_KEY_ID=<key ID>
+CLOUDFLARE_TURN_API_TOKEN=<API token>
+```
 
 ### Alternative: self-host coturn (free, fully owned)
 
