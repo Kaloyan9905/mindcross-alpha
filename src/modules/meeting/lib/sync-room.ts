@@ -1,7 +1,8 @@
-import { and, eq, gt, lt, ne } from "drizzle-orm";
+import { and, desc, eq, gt, lt, ne } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
 import {
+  meetingMessages,
   meetingPresence,
   meetingSignals,
   type MeetingSignalKind,
@@ -33,9 +34,21 @@ export interface RoomPeer {
   displayName: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  body: string;
+  createdAt: Date;
+}
+
+/** Most recent messages returned each tick (the room chat is short-lived). */
+const CHAT_LIMIT = 50;
+
 export interface SyncRoomResult {
   peers: RoomPeer[];
   incoming: IncomingSignal[];
+  messages: ChatMessage[];
 }
 
 /**
@@ -134,6 +147,21 @@ export async function syncRoom(input: {
     });
   incomingRows.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
+  // 6) Recent chat (server-backed so it survives a refresh/rejoin).
+  const messageRows = await db
+    .select({
+      id: meetingMessages.id,
+      senderId: meetingMessages.senderId,
+      senderName: meetingMessages.senderName,
+      body: meetingMessages.body,
+      createdAt: meetingMessages.createdAt,
+    })
+    .from(meetingMessages)
+    .where(eq(meetingMessages.bookingId, input.bookingId))
+    .orderBy(desc(meetingMessages.createdAt))
+    .limit(CHAT_LIMIT);
+  messageRows.reverse(); // oldest-first for display
+
   return {
     ok: true,
     data: {
@@ -143,6 +171,7 @@ export async function syncRoom(input: {
         kind: r.kind,
         payload: r.payload,
       })),
+      messages: messageRows,
     },
   };
 }

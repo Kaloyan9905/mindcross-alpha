@@ -89,10 +89,15 @@ test.describe("meeting room", () => {
       await expect(client.getByText(/connecting to/i)).toHaveCount(0, { timeout: 30_000 });
       await expect(therapist.getByText(/connecting to/i)).toHaveCount(0, { timeout: 30_000 });
 
-      // In-call chat travels over the WebRTC data channel (no server).
+      // In-call chat is server-backed (persists, unlike the old data channel).
       await client.getByRole("button", { name: /open chat/i }).click();
       await client.getByLabel("Chat message").fill("hello from e2e");
       await client.getByRole("button", { name: /^send$/i }).click();
+      await therapist.getByRole("button", { name: /open chat/i }).click();
+      await expect(therapist.getByText("hello from e2e")).toBeVisible({ timeout: 10_000 });
+
+      // ...and it survives a refresh/rejoin (the reported bug).
+      await therapist.reload();
       await therapist.getByRole("button", { name: /open chat/i }).click();
       await expect(therapist.getByText("hello from e2e")).toBeVisible({ timeout: 10_000 });
     } finally {

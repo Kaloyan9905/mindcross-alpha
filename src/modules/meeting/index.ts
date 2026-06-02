@@ -17,14 +17,18 @@ export {
   type OutgoingSignal,
   type IncomingSignal,
   type RoomPeer,
+  type ChatMessage,
   type SyncRoomResult,
 } from "./lib/sync-room";
+export { sendMeetingChat, type SendChatResult } from "./lib/send-chat";
 export { leaveRoom } from "./lib/leave-room";
 export { getIceServers, type IceServer } from "./lib/ice";
 export {
   meetingPresence,
   meetingSignals,
+  meetingMessages,
   type MeetingPresence,
   type MeetingSignal,
   type MeetingSignalKind,
+  type MeetingMessage,
 } from "./db/schema";

@@ -14,6 +14,7 @@ import { therapists } from "@/modules/therapists/db/schema";
 import { bookings, bookingParticipants } from "@/modules/booking/db/schema";
 import { getRoomMembership } from "@/modules/meeting/lib/authorize-room";
 import { syncRoom } from "@/modules/meeting/lib/sync-room";
+import { sendMeetingChat } from "@/modules/meeting/lib/send-chat";
 import { leaveRoom } from "@/modules/meeting/lib/leave-room";
 
 const PW = "correct-horse-battery-staple";
@@ -160,6 +161,39 @@ describe("syncRoom signaling", () => {
 
   it("rejects a non-member trying to sync", async () => {
     const r = await syncRoom({ bookingId, userId: outsiderId, displayName: "Nope", outgoing: [] });
+    expect(r.ok).toBe(false);
+  });
+});
+
+describe("meeting chat (persistent)", () => {
+  it("persists a member's message and returns it on the next sync", async () => {
+    const id = uuidv7();
+    const r = await sendMeetingChat({
+      bookingId,
+      userId: clientId,
+      displayName: "Client",
+      id,
+      body: "hello room",
+    });
+    expect(r.ok).toBe(true);
+
+    const s = await syncRoom({ bookingId, userId: therapistUserId, displayName: "T", outgoing: [] });
+    expect(s.ok).toBe(true);
+    if (s.ok) {
+      const msg = s.data.messages.find((m) => m.id === id);
+      expect(msg?.body).toBe("hello room");
+      expect(msg?.senderId).toBe(clientId);
+    }
+  });
+
+  it("rejects a non-member sender", async () => {
+    const r = await sendMeetingChat({
+      bookingId,
+      userId: outsiderId,
+      displayName: "Nope",
+      id: uuidv7(),
+      body: "should not save",
+    });
     expect(r.ok).toBe(false);
   });
 });

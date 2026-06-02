@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { uuidv7 } from "uuidv7";
 import {
   AlertTriangle,
   LifeBuoy,
@@ -17,7 +18,11 @@ import {
   X,
 } from "lucide-react";
 
-import { syncRoomAction, leaveRoomAction } from "@/modules/meeting/actions/room";
+import {
+  syncRoomAction,
+  leaveRoomAction,
+  sendChatAction,
+} from "@/modules/meeting/actions/room";
 import type { OutgoingSignal } from "@/modules/meeting/lib/sync-room";
 import type { IceServer } from "@/modules/meeting/lib/ice";
 import { Button } from "@/components/ui/button";
@@ -36,22 +41,22 @@ interface RemoteState {
   connected: boolean;
 }
 
-/** Per-peer connection state. */
+/** Per-peer connection state (perfect-negotiation bookkeeping). */
 interface Conn {
   pc: RTCPeerConnection;
+  polite: boolean;
+  makingOffer: boolean;
   remoteSet: boolean;
   pending: RTCIceCandidateInit[];
-  channel: RTCDataChannel | null;
 }
 
 interface ChatMsg {
   id: string;
   self: boolean;
   name: string;
-  text: string;
+  body: string;
 }
 
-/** The shape of a signaling payload exchanged over the Postgres channel. */
 type SignalPayload = {
   sdp?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
@@ -89,7 +94,7 @@ function RemoteTile({ state }: { state: RemoteState }) {
         ref={ref}
         autoPlay
         playsInline
-        className={cn("h-full w-full object-cover", live ? "opacity-100" : "opacity-0")}
+        className={cn("h-full w-full object-contain", live ? "opacity-100" : "opacity-0")}
       />
       {!live ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -122,11 +127,11 @@ export function MeetingRoom({
   const screenStreamRef = React.useRef<MediaStream | null>(null);
   const leftRef = React.useRef(false);
 
-  // Shared so the controls (screen-share, chat) can reach live peers.
+  // Shared across the effect + the controls.
   const connectionsRef = React.useRef<Map<string, Conn>>(new Map());
-  const namesRef = React.useRef<Map<string, string>>(new Map());
+  const outgoingRef = React.useRef<OutgoingSignal[]>([]);
+  const seenMsgIdsRef = React.useRef<Set<string>>(new Set());
   const chatOpenRef = React.useRef(false);
-  const msgSeqRef = React.useRef(0);
 
   const [remotes, setRemotes] = React.useState<Map<string, RemoteState>>(new Map());
   const [micOn, setMicOn] = React.useState(true);
@@ -141,13 +146,6 @@ export function MeetingRoom({
   const [unread, setUnread] = React.useState(0);
   const [draft, setDraft] = React.useState("");
 
-  const appendMessage = React.useCallback((m: Omit<ChatMsg, "id">) => {
-    setMessages((prev) => [...prev, { id: String(msgSeqRef.current++), ...m }]);
-    if (!m.self && !chatOpenRef.current) setUnread((u) => u + 1);
-  }, []);
-
-  // Keep a ref in sync so the data-channel receive handler can tell whether the
-  // chat is open (to decide if a message counts as unread).
   React.useEffect(() => {
     chatOpenRef.current = chatOpen;
   }, [chatOpen]);
@@ -175,10 +173,9 @@ export function MeetingRoom({
     const connectedIds = new Set<string>();
     const firstSeen = new Map<string, number>();
     const missed = new Map<string, number>();
-    let outgoing: OutgoingSignal[] = [];
 
     function send(recipientId: string, payload: SignalPayload) {
-      outgoing.push({ recipientId, kind: "signal", payload: JSON.stringify(payload) });
+      outgoingRef.current.push({ recipientId, kind: "signal", payload: JSON.stringify(payload) });
     }
 
     function patchRemote(peerId: string, patch: Partial<RemoteState>) {
@@ -198,23 +195,10 @@ export function MeetingRoom({
       });
     }
 
-    function wireChannel(peerId: string, ch: RTCDataChannel) {
-      const entry = connections.get(peerId);
-      if (entry) entry.channel = ch;
-      ch.addEventListener("message", (e) => {
-        appendMessage({
-          self: false,
-          name: namesRef.current.get(peerId) || "Participant",
-          text: String((e as MessageEvent).data).slice(0, MAX_CHAT_LEN),
-        });
-      });
-    }
-
     function destroyConnection(peerId: string) {
       const c = connections.get(peerId);
       if (c) {
         try {
-          c.channel?.close();
           c.pc.close();
         } catch {
           /* already closed */
@@ -227,17 +211,30 @@ export function MeetingRoom({
       dropRemote(peerId);
     }
 
-    function createConnection(peerId: string, initiator: boolean): Conn {
+    function createConnection(peerId: string): Conn {
       const existing = connections.get(peerId);
       if (existing) return existing;
 
       const pc = new RTCPeerConnection({ iceServers: iceServers as RTCIceServer[] });
-      const entry: Conn = { pc, remoteSet: false, pending: [], channel: null };
+      // Deterministic roles for "perfect negotiation": the higher id is polite
+      // (yields on an offer collision) so simultaneous offers resolve cleanly.
+      const entry: Conn = { pc, polite: selfId > peerId, makingOffer: false, remoteSet: false, pending: [] };
       connections.set(peerId, entry);
 
       const local = localStreamRef.current;
       if (local) for (const track of local.getTracks()) pc.addTrack(track, local);
 
+      pc.addEventListener("negotiationneeded", async () => {
+        try {
+          entry.makingOffer = true;
+          await pc.setLocalDescription();
+          if (pc.localDescription) send(peerId, { sdp: pc.localDescription });
+        } catch {
+          /* will retry on the next change */
+        } finally {
+          entry.makingOffer = false;
+        }
+      });
       pc.addEventListener("icecandidate", (e) => {
         if (e.candidate) send(peerId, { candidate: e.candidate.toJSON() });
       });
@@ -245,7 +242,6 @@ export function MeetingRoom({
         const [stream] = e.streams;
         if (stream) patchRemote(peerId, { stream });
       });
-      pc.addEventListener("datachannel", (e) => wireChannel(peerId, e.channel));
       pc.addEventListener("connectionstatechange", () => {
         const st = pc.connectionState;
         if (st === "connected") {
@@ -256,51 +252,65 @@ export function MeetingRoom({
           destroyConnection(peerId);
         }
       });
-
-      if (initiator) {
-        // Create the data channel before the offer so it's negotiated with it.
-        wireChannel(peerId, pc.createDataChannel("chat"));
-        void (async () => {
-          try {
-            await pc.setLocalDescription(await pc.createOffer());
-            if (pc.localDescription) send(peerId, { sdp: pc.localDescription });
-          } catch {
-            destroyConnection(peerId);
-          }
-        })();
-      }
       return entry;
     }
 
     async function handleSignal(senderId: string, raw: string) {
+      const entry = connections.get(senderId) ?? createConnection(senderId);
+      const pc = entry.pc;
       let data: SignalPayload;
       try {
         data = JSON.parse(raw) as SignalPayload;
       } catch {
         return;
       }
-      const entry = connections.get(senderId) ?? createConnection(senderId, false);
 
       if (data.sdp) {
+        const offerCollision =
+          data.sdp.type === "offer" && (entry.makingOffer || pc.signalingState !== "stable");
+        if (!entry.polite && offerCollision) return; // impolite ignores the collision
         try {
-          await entry.pc.setRemoteDescription(data.sdp);
-          entry.remoteSet = true;
-          for (const c of entry.pending.splice(0)) {
-            await entry.pc.addIceCandidate(c).catch(() => {});
-          }
-          if (data.sdp.type === "offer") {
-            await entry.pc.setLocalDescription(await entry.pc.createAnswer());
-            if (entry.pc.localDescription) send(senderId, { sdp: entry.pc.localDescription });
-          }
+          await pc.setRemoteDescription(data.sdp); // polite peer auto-rolls-back
         } catch {
-          destroyConnection(senderId);
+          return;
+        }
+        entry.remoteSet = true;
+        for (const c of entry.pending.splice(0)) {
+          await pc.addIceCandidate(c).catch(() => {});
+        }
+        if (data.sdp.type === "offer") {
+          try {
+            await pc.setLocalDescription();
+            if (pc.localDescription) send(senderId, { sdp: pc.localDescription });
+          } catch {
+            /* ignore */
+          }
         }
       } else if (data.candidate) {
         if (entry.remoteSet) {
-          await entry.pc.addIceCandidate(data.candidate).catch(() => {});
+          await pc.addIceCandidate(data.candidate).catch(() => {});
         } else {
           entry.pending.push(data.candidate);
         }
+      }
+    }
+
+    function ingestMessages(
+      serverMsgs: Array<{ id: string; senderId: string; senderName: string; body: string }>,
+    ) {
+      const seen = seenMsgIdsRef.current;
+      const fresh: ChatMsg[] = [];
+      let newFromOthers = 0;
+      for (const m of serverMsgs) {
+        if (seen.has(m.id)) continue;
+        seen.add(m.id);
+        const self = m.senderId === selfId;
+        fresh.push({ id: m.id, self, name: self ? "You" : m.senderName || "Participant", body: m.body });
+        if (!self && !chatOpenRef.current) newFromOthers += 1;
+      }
+      if (fresh.length > 0) {
+        setMessages((prev) => [...prev, ...fresh]);
+        if (newFromOthers > 0) setUnread((u) => u + newFromOthers);
       }
     }
 
@@ -308,13 +318,13 @@ export function MeetingRoom({
       if (!active || ticking) return;
       ticking = true;
       try {
-        const out = outgoing;
-        outgoing = [];
+        const out = outgoingRef.current;
+        outgoingRef.current = [];
         let res: Awaited<ReturnType<typeof syncRoomAction>>;
         try {
           res = await syncRoomAction({ bookingId, outgoing: out });
         } catch {
-          return; // transient — try again next tick
+          return;
         }
         if (!active) return;
         if (!res.ok) {
@@ -325,21 +335,18 @@ export function MeetingRoom({
           return;
         }
 
-        const { peers: live, incoming } = res.data;
+        const { peers: live, incoming, messages: serverMsgs } = res.data;
         const liveIds = new Set(live.map((p) => p.userId));
         const now = Date.now();
 
         for (const p of live) {
-          const name = p.displayName || "Participant";
-          namesRef.current.set(p.userId, name);
-          patchRemote(p.userId, { name });
+          patchRemote(p.userId, { name: p.displayName || "Participant" });
           if (!firstSeen.has(p.userId)) firstSeen.set(p.userId, now);
           missed.set(p.userId, 0);
-          // Deterministic initiator avoids "glare": lower id calls higher id.
-          if (selfId < p.userId) createConnection(p.userId, true);
+          // Both peers create eagerly; perfect negotiation resolves the glare.
+          createConnection(p.userId);
         }
 
-        // Tear down peers that have gone (allow one missed poll for jitter).
         for (const peerId of Array.from(connections.keys())) {
           if (!liveIds.has(peerId)) {
             const m = (missed.get(peerId) ?? 0) + 1;
@@ -356,19 +363,19 @@ export function MeetingRoom({
           }
         }
 
-        // NAT-trouble hint: a peer that's been here a while but never connected.
         let troubled = false;
         for (const [peerId, seenAt] of firstSeen) {
           if (!connectedIds.has(peerId) && now - seenAt > TROUBLE_MS) troubled = true;
         }
         setTrouble(troubled);
+
+        ingestMessages(serverMsgs);
       } finally {
         ticking = false;
       }
     }
 
     async function init() {
-      // Best-effort media: prefer video+audio, fall back to audio, then none.
       let stream: MediaStream | null = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -398,7 +405,6 @@ export function MeetingRoom({
       if (intervalId) clearInterval(intervalId);
       connections.forEach((c) => {
         try {
-          c.channel?.close();
           c.pc.close();
         } catch {
           /* noop */
@@ -409,7 +415,7 @@ export function MeetingRoom({
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       void leaveRoomAction({ bookingId }).catch(() => {});
     };
-  }, [bookingId, selfId, iceServers, appendMessage]);
+  }, [bookingId, selfId, iceServers]);
 
   function leave() {
     if (leftRef.current) return;
@@ -433,12 +439,34 @@ export function MeetingRoom({
     setCamOn(next);
   }
 
-  /** Swap the outbound video track on every peer (camera <-> screen). */
+  /** Swap the outgoing video track on every peer (camera <-> screen). */
   function replaceVideoTrack(track: MediaStreamTrack | null) {
     connectionsRef.current.forEach((entry) => {
       const sender = entry.pc.getSenders().find((s) => s.track?.kind === "video");
       if (sender) void sender.replaceTrack(track).catch(() => {});
     });
+  }
+
+  /**
+   * replaceTrack alone doesn't always make the other side re-render a very
+   * different resolution (camera <-> screen), so force a renegotiation per peer.
+   * Perfect-negotiation on the receiver handles the incoming re-offer.
+   */
+  async function renegotiateAll() {
+    for (const [peerId, entry] of connectionsRef.current) {
+      try {
+        await entry.pc.setLocalDescription();
+        if (entry.pc.localDescription) {
+          outgoingRef.current.push({
+            recipientId: peerId,
+            kind: "signal",
+            payload: JSON.stringify({ sdp: entry.pc.localDescription }),
+          });
+        }
+      } catch {
+        /* a colliding renegotiation is resolved via signalingState in handleSignal */
+      }
+    }
   }
 
   function stopScreenShare() {
@@ -448,6 +476,7 @@ export function MeetingRoom({
     screenStreamRef.current = null;
     if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
     setSharing(false);
+    void renegotiateAll();
   }
 
   async function toggleScreenShare() {
@@ -459,7 +488,7 @@ export function MeetingRoom({
     try {
       screen = await navigator.mediaDevices.getDisplayMedia({ video: true });
     } catch {
-      return; // user cancelled the picker
+      return;
     }
     const track = screen.getVideoTracks()[0];
     if (!track) return;
@@ -468,22 +497,17 @@ export function MeetingRoom({
     if (localVideoRef.current) localVideoRef.current.srcObject = screen;
     track.addEventListener("ended", () => stopScreenShare());
     setSharing(true);
+    void renegotiateAll();
   }
 
   function sendChat() {
-    const text = draft.trim().slice(0, MAX_CHAT_LEN);
-    if (!text) return;
-    let delivered = false;
-    connectionsRef.current.forEach((entry) => {
-      if (entry.channel && entry.channel.readyState === "open") {
-        entry.channel.send(text);
-        delivered = true;
-      }
-    });
-    if (delivered || connectionsRef.current.size === 0) {
-      appendMessage({ self: true, name: "You", text });
-    }
+    const body = draft.trim().slice(0, MAX_CHAT_LEN);
+    if (!body) return;
+    const id = uuidv7();
+    seenMsgIdsRef.current.add(id);
+    setMessages((prev) => [...prev, { id, self: true, name: "You", body }]);
     setDraft("");
+    void sendChatAction({ bookingId, id, body }).catch(() => {});
   }
 
   const remoteEntries = Array.from(remotes.entries());
@@ -571,7 +595,8 @@ export function MeetingRoom({
                 playsInline
                 muted
                 className={cn(
-                  "h-full w-full object-cover",
+                  "h-full w-full",
+                  sharing ? "object-contain" : "object-cover",
                   (camOn && hasVideo) || sharing ? "opacity-100" : "opacity-0",
                 )}
               />
@@ -601,13 +626,10 @@ export function MeetingRoom({
                 <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
-            <div
-              className="flex flex-1 flex-col gap-2 overflow-y-auto p-3"
-              aria-live="polite"
-            >
+            <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3" aria-live="polite">
               {messages.length === 0 ? (
                 <p className="m-auto max-w-[14rem] text-center text-xs text-muted-foreground">
-                  Messages are peer-to-peer and disappear when the call ends.
+                  Messages are saved to this session, so they stay if you refresh.
                 </p>
               ) : (
                 messages.map((m) => (
@@ -621,7 +643,7 @@ export function MeetingRoom({
                           : "rounded-bl-sm bg-secondary text-secondary-foreground",
                       )}
                     >
-                      {m.text}
+                      {m.body}
                     </div>
                   </div>
                 ))

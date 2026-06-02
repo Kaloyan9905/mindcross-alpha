@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/modules/identity";
 import { getRoomMembership } from "../lib/authorize-room";
 import { getIceServers, type IceServer } from "../lib/ice";
 import { leaveRoom } from "../lib/leave-room";
+import { sendMeetingChat, type SendChatResult } from "../lib/send-chat";
 import {
   syncRoom,
   type OutgoingSignal,
@@ -57,6 +58,23 @@ export async function syncRoomAction(input: {
     userId: user.id,
     displayName: user.name ?? "Guest",
     outgoing: input.outgoing,
+  });
+}
+
+/** Send one in-call chat message (persisted, scoped to the booking). */
+export async function sendChatAction(input: {
+  bookingId: string;
+  id: string;
+  body: string;
+}): Promise<SendChatResult> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "unauthenticated" };
+  return sendMeetingChat({
+    bookingId: input.bookingId,
+    userId: user.id,
+    displayName: user.name ?? "Guest",
+    id: input.id,
+    body: input.body,
   });
 }
 

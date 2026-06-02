@@ -84,3 +84,38 @@ export const meetingSignals = pgTable(
 
 export type MeetingSignal = typeof meetingSignals.$inferSelect;
 export type NewMeetingSignal = typeof meetingSignals.$inferInsert;
+
+/**
+ * meeting_messages: persistent in-call chat, scoped to a booking. Unlike the
+ * old data-channel chat, these survive a refresh/rejoin and are consistent for
+ * everyone in the room. `id` is client-generated (uuidv7) so the sender can
+ * de-dupe its own optimistic message when it polls back.
+ */
+export const meetingMessages = pgTable(
+  "meeting_messages",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    bookingId: text("booking_id")
+      .notNull()
+      .references(() => bookings.id, { onDelete: "cascade" }),
+    senderId: text("sender_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    senderName: text("sender_name").notNull().default(""),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => ({
+    bookingCreatedIdx: index("meeting_messages_booking_created_idx").on(
+      table.bookingId,
+      table.createdAt,
+    ),
+  }),
+);
+
+export type MeetingMessage = typeof meetingMessages.$inferSelect;
+export type NewMeetingMessage = typeof meetingMessages.$inferInsert;
