@@ -55,6 +55,8 @@ In **Project → Settings → Environment Variables**, set:
 | `AUTH_TRUST_HOST` | `true` | Lets Auth.js trust the deployment host. |
 | `AUTH_URL` | `https://<your-app>.vercel.app` | Recommended on your production domain. Optional for preview URLs (cookies are still Secure on Vercel). |
 | `CRON_SECRET` | a 32-byte random string | Guards `/api/cron/reminders`; Vercel sends it automatically to the cron. |
+| `MEETING_TURN_URL` | `turn:<host>:3478` | Optional. TURN relay for the in-app video call (see §7). Omit for STUN-only. |
+| `MEETING_TURN_SECRET` | coturn `static-auth-secret` | Optional. The app mints short-lived TURN credentials from it. |
 
 `NODE_ENV=production` is set by Vercel automatically — don't add it.
 
@@ -108,3 +110,44 @@ applies them.)
 - **Local development** is unchanged: `docker compose up -d` for Postgres, then
   `pnpm dev`. The DB driver enables TLS automatically for non-local hosts, so the
   same code talks to both local Docker and Neon.
+
+---
+
+## 7. Optional: reliable video calls behind strict firewalls (TURN)
+
+The in-app session room (`/session/[bookingId]`) is **peer-to-peer WebRTC** and
+works out of the box using free public STUN — no config, no account. But ~10–20%
+of users behind **symmetric NAT / CGNAT / locked-down firewalls** (common on
+mobile and shelter/campus networks) can't connect peer-to-peer and need a **TURN
+relay**. There is no free *no-account* public TURN anymore, so the free path is
+to **self-host [coturn](https://github.com/coturn/coturn)** on any small server.
+
+Media stays end-to-end encrypted (DTLS-SRTP) — a TURN relay only forwards
+encrypted packets, it can't read them.
+
+**1. Run coturn on a cheap/free VPS** (e.g. Oracle Cloud Always-Free). Open UDP
+`3478` and the relay range, and pick a strong secret:
+
+```bash
+docker run -d --name coturn --network host coturn/coturn:4.6-alpine \
+  --no-cli --use-auth-secret \
+  --static-auth-secret="$(openssl rand -base64 32)" \
+  --realm=mindcross --listening-port=3478 \
+  --min-port=49160 --max-port=49200 \
+  --external-ip="$(curl -s ifconfig.me)"
+```
+
+**2. Set the env vars** (Vercel project settings, or your host):
+
+```
+MEETING_TURN_URL=turn:your-vps-host:3478
+MEETING_TURN_SECRET=<the same static-auth-secret>
+```
+
+The app mints short-lived HMAC credentials from `MEETING_TURN_SECRET` per join
+(coturn's REST scheme), so no per-user TURN account is needed and leaked
+credentials expire quickly. For production, also add `--tls-listening-port=5349`
+with a cert so TURN works over TCP/443-style ports through hostile firewalls.
+
+The local `docker compose` setup already includes a `coturn` service wired this
+way for the Docker deployment.

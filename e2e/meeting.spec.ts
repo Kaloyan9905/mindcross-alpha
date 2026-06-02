@@ -88,6 +88,13 @@ test.describe("meeting room", () => {
       // clears only once the peer connection reaches "connected").
       await expect(client.getByText(/connecting to/i)).toHaveCount(0, { timeout: 30_000 });
       await expect(therapist.getByText(/connecting to/i)).toHaveCount(0, { timeout: 30_000 });
+
+      // In-call chat travels over the WebRTC data channel (no server).
+      await client.getByRole("button", { name: /open chat/i }).click();
+      await client.getByLabel("Chat message").fill("hello from e2e");
+      await client.getByRole("button", { name: /^send$/i }).click();
+      await therapist.getByRole("button", { name: /open chat/i }).click();
+      await expect(therapist.getByText("hello from e2e")).toBeVisible({ timeout: 10_000 });
     } finally {
       await clientCtx.close();
       await therapistCtx.close();

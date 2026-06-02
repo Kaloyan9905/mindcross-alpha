@@ -38,11 +38,40 @@ services:
       # http://0.0.0.0:3000, which browsers refuse to load. Use http:// here so
       # cookies are NOT marked Secure (this demo is served over plain HTTP).
       AUTH_URL: "http://localhost:3000"
+      # In-app meeting TURN relay (see the `coturn` service below). The browser
+      # reaches the relay here; the app mints short-lived credentials from
+      # MEETING_TURN_SECRET, which MUST equal coturn's --static-auth-secret.
+      MEETING_TURN_URL: "turn:localhost:3478"
+      MEETING_TURN_SECRET: "dev_turn_secret_change_me"
     ports:
       - "3000:3000"
     depends_on:
       postgres:
         condition: service_healthy
+
+  # Optional TURN relay (coturn) so users behind symmetric NAT / strict firewalls
+  # can still connect when peer-to-peer STUN fails. Free, self-hosted, no account.
+  # Uses host networking because a media relay needs the host's real ports — this
+  # works on a Linux host / VPS. (On Docker Desktop for Mac/Windows host
+  # networking is limited, but same-machine local calls connect via STUN anyway.)
+  # For Vercel: run coturn on a small VPS and set MEETING_TURN_URL +
+  # MEETING_TURN_SECRET in the Vercel project env (see DEPLOYMENT.md).
+  coturn:
+    image: coturn/coturn:4.6-alpine
+    container_name: mindcross-alpha-coturn
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - --no-cli
+      - --no-tls
+      - --no-dtls
+      - --use-auth-secret
+      - --static-auth-secret=dev_turn_secret_change_me
+      - --realm=mindcross
+      - --listening-port=3478
+      - --min-port=49160
+      - --max-port=49200
+      - --log-file=stdout
 
 volumes:
   postgres_data:

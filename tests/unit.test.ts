@@ -149,7 +149,7 @@ describe("meeting getIceServers", () => {
     expect(s.some((x) => String(x.urls).startsWith("turn:"))).toBe(false);
   });
 
-  it("appends a configured TURN relay with credentials", () => {
+  it("appends a configured TURN relay with static credentials", () => {
     process.env.MEETING_TURN_URL = "turn:turn.example.com:3478";
     process.env.MEETING_TURN_USERNAME = "u";
     process.env.MEETING_TURN_CREDENTIAL = "p";
@@ -161,6 +161,22 @@ describe("meeting getIceServers", () => {
       delete process.env.MEETING_TURN_URL;
       delete process.env.MEETING_TURN_USERNAME;
       delete process.env.MEETING_TURN_CREDENTIAL;
+    }
+  });
+
+  it("mints short-lived coturn credentials from a shared secret", () => {
+    process.env.MEETING_TURN_URL = "turn:turn.example.com:3478";
+    process.env.MEETING_TURN_SECRET = "shared-secret";
+    try {
+      const turn = getIceServers().find((x) => String(x.urls).startsWith("turn:"));
+      // username is a future unix-second expiry; credential is base64 HMAC.
+      const expiry = Number(turn?.username);
+      expect(Number.isInteger(expiry)).toBe(true);
+      expect(expiry).toBeGreaterThan(Math.floor(Date.now() / 1000));
+      expect(turn?.credential).toMatch(/^[A-Za-z0-9+/]+=*$/);
+    } finally {
+      delete process.env.MEETING_TURN_URL;
+      delete process.env.MEETING_TURN_SECRET;
     }
   });
 });
