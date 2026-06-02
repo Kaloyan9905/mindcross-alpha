@@ -9,11 +9,15 @@
 // --- Access policy ---------------------------------------------------------
 export {
   isAdminRole,
+  isSuperAdmin,
   ADMIN_ROLES,
   requireAdmin,
   getAdminUser,
 } from "./lib/policies";
 export type { AdminRole } from "./lib/policies";
+
+export { setUserRole } from "./lib/set-user-role";
+export type { SetUserRoleInput, SetUserRoleResult } from "./lib/set-user-role";
 
 // --- Server actions --------------------------------------------------------
 export { deleteUserAction } from "./actions/delete-user";
@@ -30,3 +34,6 @@ export type {
   ReviewReportInput,
   ReviewReportResult,
 } from "./actions/review-report";
+
+export { setUserRoleAction } from "./actions/set-user-role";
+export type { SetUserRoleActionInput } from "./actions/set-user-role";

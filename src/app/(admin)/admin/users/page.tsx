@@ -1,5 +1,5 @@
 import { listUsersAdmin } from "@/modules/identity";
-import { isAdminRole } from "@/modules/admin";
+import { getAdminUser, isAdminRole, isSuperAdmin } from "@/modules/admin";
 import {
   Card,
   CardContent,
@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 import { UserDeleteAction } from "./user-delete-action";
+import { UserRoleDialog } from "./user-role-dialog";
 
 /** Shared date formatter — short, locale-aware. */
 const DATE_FMT = new Intl.DateTimeFormat("en", {
@@ -29,7 +30,9 @@ const DATE_FMT = new Intl.DateTimeFormat("en", {
  * additionally self-authorizes.
  */
 export default async function AdminUsersPage() {
-  const users = await listUsersAdmin();
+  const [users, viewer] = await Promise.all([listUsersAdmin(), getAdminUser()]);
+  const canAssignRoles = viewer ? isSuperAdmin(viewer.role) : false;
+  const viewerId = viewer?.id;
 
   return (
     <div className="space-y-8">
@@ -38,6 +41,9 @@ export default async function AdminUsersPage() {
         <p className="text-sm text-muted-foreground">
           Every account on the platform. Use Delete to process a GDPR erasure
           request.
+          {canAssignRoles
+            ? " As a super admin, you can also change any account's role."
+            : null}
         </p>
       </header>
 
@@ -110,16 +116,31 @@ export default async function AdminUsersPage() {
                             {DATE_FMT.format(user.createdAt)}
                           </td>
                           <td className="px-3 py-3">
-                            <div className="flex justify-end">
-                              {staff ? (
+                            <div className="flex flex-wrap justify-end gap-2">
+                              {user.id === viewerId ? (
                                 <span className="text-xs text-muted-foreground">
-                                  Managed in DB
+                                  You
                                 </span>
                               ) : (
-                                <UserDeleteAction
-                                  userId={user.id}
-                                  userLabel={user.name ?? user.email}
-                                />
+                                <>
+                                  {canAssignRoles ? (
+                                    <UserRoleDialog
+                                      userId={user.id}
+                                      userLabel={user.name ?? user.email}
+                                      currentRole={user.role}
+                                    />
+                                  ) : null}
+                                  {!staff ? (
+                                    <UserDeleteAction
+                                      userId={user.id}
+                                      userLabel={user.name ?? user.email}
+                                    />
+                                  ) : !canAssignRoles ? (
+                                    <span className="text-xs text-muted-foreground">
+                                      Managed in DB
+                                    </span>
+                                  ) : null}
+                                </>
                               )}
                             </div>
                           </td>

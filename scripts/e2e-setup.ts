@@ -27,6 +27,8 @@ import { sendFriendRequest } from "@/modules/friends/lib/send-friend-request";
 const PASSWORD = "e2e-correct-horse-staple";
 const ALICE = { name: "Alice E2E", email: "e2e.alice@mindcross.test", password: PASSWORD };
 const BOB = { name: "Bob E2E", email: "e2e.bob@mindcross.test", password: PASSWORD };
+const ROLE_TARGET = { name: "Role Target E2E", email: "e2e.roletarget@mindcross.test", password: PASSWORD };
+const ADMIN = { name: "Super Admin E2E", email: "e2e.admin@mindcross.test", password: PASSWORD };
 
 async function ensureFreshUser(u: { name: string; email: string; password: string }): Promise<string> {
   const db = getDb();
@@ -115,6 +117,21 @@ async function ensureMeetingBooking(clientId: string): Promise<{
   };
 }
 
+/** A super admin (with a password) for the role-assignment spec. */
+async function ensureAdmin(): Promise<{ email: string; password: string }> {
+  const db = getDb();
+  await db.delete(users).where(eq(users.email, ADMIN.email));
+  await db.insert(users).values({
+    id: uuidv7(),
+    name: ADMIN.name,
+    email: ADMIN.email,
+    role: "admin_super",
+    passwordHash: await hashPassword(ADMIN.password),
+    emailVerified: new Date(),
+  });
+  return { email: ADMIN.email, password: ADMIN.password };
+}
+
 async function main() {
   const aliceId = await ensureFreshUser(ALICE);
   const bobId = await ensureFreshUser(BOB);
@@ -125,10 +142,17 @@ async function main() {
   // A meeting room Alice (and only Alice) can open.
   const meeting = await ensureMeetingBooking(aliceId);
 
+  // A dedicated client the role-assignment spec can re-role (kept separate from
+  // Bob so it doesn't disturb the friend-badge spec).
+  await ensureFreshUser(ROLE_TARGET);
+  const admin = await ensureAdmin();
+
   const fixtures = {
     requester: { email: ALICE.email, password: ALICE.password, name: ALICE.name },
     addressee: { email: BOB.email, password: BOB.password, name: BOB.name },
     meeting,
+    admin,
+    roleTarget: { email: ROLE_TARGET.email, name: ROLE_TARGET.name },
   };
   const dir = path.resolve(process.cwd(), "e2e");
   mkdirSync(dir, { recursive: true });

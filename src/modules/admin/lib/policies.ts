@@ -38,6 +38,15 @@ export function isAdminRole(role: string): boolean {
 }
 
 /**
+ * True only for the top staff role, `admin_super` — the "superuser". Role
+ * assignment is restricted to this role (a regular `admin_*` cannot grant or
+ * change roles, which would otherwise let any staffer self-promote).
+ */
+export function isSuperAdmin(role: string): boolean {
+  return role === "admin_super";
+}
+
+/**
  * Route guard for every `(admin)` page and layout.
  *
  * Reads the DB-backed session via `getCurrentUser()`. If the request is

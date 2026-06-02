@@ -149,13 +149,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => {
     ],
     callbacks: {
       /**
-       * On sign-in `user` is the object returned by `authorize`. Copy its
-       * `id` and `role` onto the JWT so later requests need no DB read.
+       * On sign-in `user` is the object returned by `authorize` — seed `id` and
+       * `role` onto the JWT. On every later request we re-read `role` from the
+       * DB so an admin role change (see `modules/admin`) takes effect on the
+       * user's next request rather than only after the 14-day token expiry.
+       * The lookup is a single indexed primary-key read; a transient DB error
+       * keeps the existing claim rather than logging everyone out.
        */
-      jwt({ token, user }) {
+      async jwt({ token, user }) {
         if (user) {
           token.id = user.id as string;
           token.role = (user as { role?: UserRole }).role ?? "client";
+          return token;
+        }
+        if (token.id) {
+          try {
+            const [row] = await db
+              .select({ role: users.role })
+              .from(users)
+              .where(eq(users.id, token.id as string))
+              .limit(1);
+            if (row) token.role = row.role;
+          } catch {
+            // Keep the existing token.role on a transient DB error.
+          }
         }
         return token;
       },
