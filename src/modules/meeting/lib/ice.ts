@@ -117,19 +117,25 @@ export async function getIceServers(): Promise<IceServer[]> {
   const metered = await meteredIceServers();
   if (metered) return [...servers, ...metered];
 
-  const url = process.env.MEETING_TURN_URL?.trim();
-  if (!url) return servers;
+  const rawUrl = process.env.MEETING_TURN_URL?.trim();
+  if (!rawUrl) return servers;
+
+  // MEETING_TURN_URL may be a comma-separated list of transports (udp/tcp/tls on
+  // 80/443) — they share one credential. Pass an array so the browser tries them
+  // all (a single udp:443 entry often can't connect to a TCP/TLS-only relay).
+  const list = rawUrl.split(",").map((u) => u.trim()).filter(Boolean);
+  const urls: string | string[] = list.length === 1 ? list[0] : list;
 
   const secret = process.env.MEETING_TURN_SECRET?.trim();
   if (secret) {
     const username = String(Math.floor(Date.now() / 1000) + TURN_TTL_SECONDS);
     const credential = createHmac("sha1", secret).update(username).digest("base64");
-    servers.push({ urls: url, username, credential });
+    servers.push({ urls, username, credential });
     return servers;
   }
 
   const username = process.env.MEETING_TURN_USERNAME?.trim();
   const credential = process.env.MEETING_TURN_CREDENTIAL?.trim();
-  servers.push(username && credential ? { urls: url, username, credential } : { urls: url });
+  servers.push(username && credential ? { urls, username, credential } : { urls });
   return servers;
 }
