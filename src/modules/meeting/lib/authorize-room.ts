@@ -43,11 +43,13 @@ export async function getRoomMembership(
       startsAt: bookings.startsAt,
       endsAt: bookings.endsAt,
       groupCapacity: bookings.groupCapacity,
+      deletedAt: bookings.deletedAt,
     })
     .from(bookings)
     .where(eq(bookings.id, bookingId))
     .limit(1);
-  if (!booking) return null;
+  // No room for a session that was cancelled or moved to the recycle bin.
+  if (!booking || booking.status === "cancelled" || booking.deletedAt) return null;
 
   const [therapist] = await db
     .select({ userId: therapists.userId })

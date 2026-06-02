@@ -34,9 +34,10 @@ export type CancelBookingInput = z.infer<typeof cancelBookingSchema>;
 /**
  * Cancel a booking.
  *
- * Authorization at MVP: only the client who owns the booking may cancel it.
- * (Staff cancellation is a post-MVP addition — the `cancelledBy` column is
- * already in place for it.)
+ * Authorization: the owning CLIENT or the booking's THERAPIST may cancel. The
+ * one-hour cutoff applies to the client only — a therapist (the provider) may
+ * cancel at any time, e.g. when something comes up last-minute. `cancelledBy`
+ * records who did it.
  *
  * Idempotent: cancelling an already-cancelled booking returns `ok` without a
  * second write or a second email.
@@ -59,7 +60,7 @@ export async function cancelBooking(
   const db = getDb();
   const now = new Date();
 
-  // Load the booking and authorize.
+  // Load the booking (with the therapist's user id) and authorize.
   const [booking] = await db
     .select({
       id: bookings.id,
@@ -67,8 +68,10 @@ export async function cancelBooking(
       slotId: bookings.slotId,
       status: bookings.status,
       startsAt: bookings.startsAt,
+      therapistUserId: therapists.userId,
     })
     .from(bookings)
+    .innerJoin(therapists, eq(bookings.therapistId, therapists.id))
     .where(eq(bookings.id, bookingId))
     .limit(1);
 
@@ -76,8 +79,9 @@ export async function cancelBooking(
     return { ok: false, error: "Booking not found." };
   }
 
-  // MVP: only the owning client may cancel.
-  if (booking.clientId !== userId) {
+  const isClient = booking.clientId === userId;
+  const isTherapist = booking.therapistUserId != null && booking.therapistUserId === userId;
+  if (!isClient && !isTherapist) {
     return { ok: false, error: "You are not allowed to cancel this booking." };
   }
 
@@ -86,8 +90,9 @@ export async function cancelBooking(
     return { ok: true, bookingId: booking.id };
   }
 
-  // Too late to change a session that is imminent or already past.
-  if (booking.startsAt.getTime() - now.getTime() < ONE_HOUR_MS) {
+  // The one-hour cutoff is a client-side courtesy rule; therapists may cancel
+  // at any time.
+  if (isClient && booking.startsAt.getTime() - now.getTime() < ONE_HOUR_MS) {
     return {
       ok: false,
       error:

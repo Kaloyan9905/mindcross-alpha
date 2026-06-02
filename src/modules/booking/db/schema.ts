@@ -98,6 +98,21 @@ export const bookings = pgTable(
     cancelledBy: text("cancelled_by").references(() => users.id, {
       onDelete: "set null",
     }),
+    /**
+     * When the FIRST participant opened the room. NULL = nobody has joined yet,
+     * which (past the grace period) makes the session a no-show. See
+     * `lib/session-lifecycle.ts`.
+     */
+    startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }),
+    /**
+     * Soft-delete (recycle bin). When set, the booking is hidden from the normal
+     * lists but recoverable; a maintenance job hard-deletes rows older than the
+     * retention window. `deletedBy` records who removed it.
+     */
+    deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "date" }),
+    deletedBy: text("deleted_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
       .notNull()
       .default(sql`now()`),

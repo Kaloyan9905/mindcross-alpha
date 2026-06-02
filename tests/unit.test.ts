@@ -11,6 +11,12 @@ import { therapistFilterSchema } from "@/modules/therapists/lib/filters";
 import { isLocale, LOCALE_META } from "@/lib/i18n/config";
 import { regionByCode } from "@/modules/safety/lib/crisis-lines";
 import { getIceServers } from "@/modules/meeting/lib/ice";
+import {
+  isJoinable,
+  isMissed,
+  isLive,
+  sessionPhase,
+} from "@/modules/booking/lib/session-lifecycle";
 
 describe("safeCallbackUrl (open-redirect guard)", () => {
   it("accepts a normal same-origin relative path", () => {
@@ -137,6 +143,45 @@ describe("crisis-lines regionByCode", () => {
     expect(eu?.lines.length).toBeGreaterThan(0);
     expect(regionByCode("de")?.label).toBe("Germany");
     expect(regionByCode("zz")).toBeUndefined();
+  });
+});
+
+describe("session lifecycle (grace period)", () => {
+  const at = (iso: string) => new Date(iso);
+  const base = (over: Partial<{ status: string; startedAt: Date | null }> = {}) => ({
+    status: "confirmed",
+    startsAt: at("2026-06-02T14:00:00Z"),
+    endsAt: at("2026-06-02T14:45:00Z"),
+    startedAt: null as Date | null,
+    ...over,
+  });
+
+  it("stays joinable through the grace window (14:00 session at 14:05)", () => {
+    const now = at("2026-06-02T14:05:00Z");
+    expect(isJoinable(base(), now)).toBe(true);
+    expect(isLive(base(), now)).toBe(true);
+    expect(sessionPhase(base(), now)).toBe("live");
+  });
+
+  it("becomes a no-show only after the grace with nobody joined (at 14:11)", () => {
+    const late = at("2026-06-02T14:11:00Z");
+    expect(isMissed(base(), late)).toBe(true);
+    expect(isJoinable(base(), late)).toBe(false);
+    expect(sessionPhase(base(), late)).toBe("missed");
+  });
+
+  it("a joined session stays live until its scheduled end", () => {
+    const joined = base({ startedAt: at("2026-06-02T14:02:00Z") });
+    const late = at("2026-06-02T14:30:00Z");
+    expect(isJoinable(joined, late)).toBe(true);
+    expect(isMissed(joined, late)).toBe(false);
+  });
+
+  it("derives upcoming / cancelled / ended / missed phases", () => {
+    expect(sessionPhase(base(), at("2026-06-02T13:50:00Z"))).toBe("upcoming");
+    expect(sessionPhase(base({ status: "cancelled" }), new Date())).toBe("cancelled");
+    expect(sessionPhase(base({ status: "completed" }), new Date())).toBe("ended");
+    expect(sessionPhase(base({ status: "no_show" }), new Date())).toBe("missed");
   });
 });
 

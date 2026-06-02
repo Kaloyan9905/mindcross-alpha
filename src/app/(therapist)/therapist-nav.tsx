@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarClock, LayoutDashboard, MessageCircle, UserCog } from "lucide-react";
+import {
+  CalendarClock,
+  LayoutDashboard,
+  MessageCircle,
+  Trash2,
+  UserCog,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -20,6 +26,7 @@ const LINKS: TherapistNavLink[] = [
   { label: "Messages", href: "/therapist/messages", icon: MessageCircle, group: "Overview" },
   { label: "Availability", href: "/therapist/availability", icon: CalendarClock, group: "Your practice" },
   { label: "Profile", href: "/therapist/profile", icon: UserCog, group: "Your practice" },
+  { label: "Recycle bin", href: "/therapist/recycle-bin", icon: Trash2, group: "Your practice" },
 ];
 
 /** Distinct group names in first-seen order. */

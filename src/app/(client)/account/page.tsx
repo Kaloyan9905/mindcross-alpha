@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/modules/identity";
 import {
   listBookingsForClient,
   listBookingInvites,
+  isJoinable,
   type BookingInviteRow,
   type ClientBookingRow,
 } from "@/modules/booking";
@@ -22,24 +23,21 @@ export const metadata: Metadata = {
 /**
  * Split a client's bookings into upcoming vs. past at request time.
  *
- * Upcoming = a future session that is not cancelled. Everything else (past
- * sessions and cancelled bookings) goes to the history list. Reading the
- * clock lives in this plain helper, not in the component body.
+ * Upcoming = a confirmed session that is still JOINABLE — which includes the
+ * 10-minute grace period after the start time (so a session at 14:00 stays here
+ * until 14:10, or until it ends once someone joins). Everything else goes to
+ * history.
  */
 function splitBookings(bookings: ClientBookingRow[]): {
   upcoming: ClientBookingRow[];
   past: ClientBookingRow[];
 } {
-  const now = Date.now();
+  const now = new Date();
   const upcoming: ClientBookingRow[] = [];
   const past: ClientBookingRow[] = [];
   for (const booking of bookings) {
-    const isFuture = new Date(booking.startsAt).getTime() >= now;
-    if (booking.status !== "cancelled" && isFuture) {
-      upcoming.push(booking);
-    } else {
-      past.push(booking);
-    }
+    if (isJoinable(booking, now)) upcoming.push(booking);
+    else past.push(booking);
   }
   return { upcoming, past };
 }
@@ -102,9 +100,17 @@ export default async function AccountPage() {
             time.
           </p>
         </div>
-        <Button asChild variant="outline" className="self-start sm:self-auto">
-          <Link href="/find-a-therapist">Book another session</Link>
-        </Button>
+        <div className="flex items-center gap-4 self-start sm:self-auto">
+          <Link
+            href="/account/recycle-bin"
+            className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Recycle bin
+          </Link>
+          <Button asChild variant="outline">
+            <Link href="/find-a-therapist">Book another session</Link>
+          </Button>
+        </div>
       </header>
 
       <div className="mt-8">

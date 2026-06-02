@@ -30,6 +30,13 @@ export type {
   SetBookingOutcomeResult,
 } from "./actions/set-booking-outcome";
 
+// Recycle bin: soft-delete + restore (client or therapist).
+export {
+  removeBookingAction,
+  restoreBookingAction,
+} from "./actions/recycle-booking";
+export type { RecycleResult } from "./actions/recycle-booking";
+
 // Group-session actions (host invites friends to co-join a booking).
 export {
   setGroupCapacityAction,
@@ -46,18 +53,42 @@ export { createBooking } from "./lib/create-booking";
 export { cancelBooking } from "./lib/cancel-booking";
 export { rescheduleBooking } from "./lib/reschedule-booking";
 export { setBookingOutcome } from "./lib/set-booking-outcome";
+export { removeBooking, restoreBooking } from "./lib/recycle-booking";
+export { markBookingStarted } from "./lib/mark-booking-started";
+
+// Session lifecycle helpers (grace period + recycle-bin retention).
+export {
+  GRACE_MINUTES,
+  GRACE_MS,
+  RETENTION_DAYS,
+  RETENTION_MS,
+  joinDeadline,
+  isJoinable,
+  isMissed,
+  isLive,
+  sessionPhase,
+  type SessionTiming,
+  type SessionPhase,
+} from "./lib/session-lifecycle";
 export { setGroupCapacity } from "./lib/set-group-capacity";
 export { inviteToBooking } from "./lib/invite-to-booking";
 export { respondToBookingInvite } from "./lib/respond-to-booking-invite";
 export { leaveBooking } from "./lib/leave-booking";
 export { MAX_GROUP_CAPACITY, type GroupResult } from "./lib/group-result";
 
-// Background job: idempotent 24h-reminder scan (driven by a cron trigger).
+// Background jobs (driven by a cron trigger).
 export { sendDueReminders } from "./lib/send-due-reminders";
 export type {
   SendDueRemindersOptions,
   SendDueRemindersResult,
 } from "./lib/send-due-reminders";
+
+export {
+  runSessionMaintenance,
+  expireMissedSessions,
+  purgeDeletedBookings,
+} from "./lib/session-maintenance";
+export type { SessionMaintenanceResult } from "./lib/session-maintenance";
 
 // Queries.
 export { listBookingsForClient } from "./queries/list-bookings-for-client";
@@ -74,9 +105,19 @@ export type { BookingInviteRow } from "./queries/list-booking-invites";
 
 export {
   listParticipantsForTherapist,
+  listRostersForTherapist,
   listGuestsForHost,
 } from "./queries/list-booking-participants";
 export type { ParticipantRow } from "./queries/list-booking-participants";
+
+export {
+  listDeletedBookingsForClient,
+  listDeletedBookingsForTherapist,
+} from "./queries/list-deleted-bookings";
+export type {
+  ClientDeletedBookingRow,
+  TherapistDeletedBookingRow,
+} from "./queries/list-deleted-bookings";
 
 // Schema / table ref + types.
 export { bookings, bookingParticipants, BOOKING_STATUS } from "./db/schema";

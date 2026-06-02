@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { env } from "@/lib/env/server";
-import { sendDueReminders } from "@/modules/booking";
+import { sendDueReminders, runSessionMaintenance } from "@/modules/booking";
 
 // The reminder scan opens a DB pool + sends email — needs the Node runtime,
 // not the Edge runtime.
@@ -55,12 +55,15 @@ async function runJob(req: Request): Promise<NextResponse> {
   }
 
   try {
-    const result = await sendDueReminders();
-    return NextResponse.json({ ok: true, ...result });
+    // One trigger runs all scheduled session jobs: 24h/1h reminders, no-show
+    // expiry (past the grace period), and recycle-bin purge.
+    const reminders = await sendDueReminders();
+    const maintenance = await runSessionMaintenance();
+    return NextResponse.json({ ok: true, reminders, maintenance });
   } catch (err) {
     console.error("[cron/reminders] job failed:", err);
     return NextResponse.json(
-      { ok: false, error: "Reminder job failed." },
+      { ok: false, error: "Session job failed." },
       { status: 500 },
     );
   }

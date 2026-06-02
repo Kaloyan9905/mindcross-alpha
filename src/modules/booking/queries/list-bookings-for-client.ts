@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { therapists } from "@/modules/therapists/db/schema";
 import type { BookingStatus } from "../db/schema";
@@ -17,6 +17,7 @@ export interface ClientBookingRow {
   status: BookingStatus;
   startsAt: Date;
   endsAt: Date;
+  startedAt: Date | null;
   joinUrl: string | null;
   therapistId: string;
   therapistDisplayName: string;
@@ -34,6 +35,7 @@ const SELECT = {
   status: bookings.status,
   startsAt: bookings.startsAt,
   endsAt: bookings.endsAt,
+  startedAt: bookings.startedAt,
   joinUrl: bookings.joinUrl,
   groupCapacity: bookings.groupCapacity,
   therapistId: therapists.id,
@@ -56,7 +58,7 @@ export async function listBookingsForClient(
     .select(SELECT)
     .from(bookings)
     .innerJoin(therapists, eq(bookings.therapistId, therapists.id))
-    .where(eq(bookings.clientId, clientId))
+    .where(and(eq(bookings.clientId, clientId), isNull(bookings.deletedAt)))
     .orderBy(desc(bookings.startsAt))
     .limit(MAX_CLIENT_BOOKINGS);
 
@@ -78,7 +80,7 @@ export async function listBookingsForClient(
           .select(SELECT)
           .from(bookings)
           .innerJoin(therapists, eq(bookings.therapistId, therapists.id))
-          .where(inArray(bookings.id, guestBookingIds))
+          .where(and(inArray(bookings.id, guestBookingIds), isNull(bookings.deletedAt)))
           .limit(MAX_CLIENT_BOOKINGS)
       : [];
 

@@ -50,6 +50,13 @@
       "when": 1749100000000,
       "tag": "0006_meeting_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1749200000000,
+      "tag": "0007_session_lifecycle",
+      "breakpoints": true
     }
   ]
 }

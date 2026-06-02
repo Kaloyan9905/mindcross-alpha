@@ -9,6 +9,8 @@ import { LogOut, MessageCircle, Users, Video } from "lucide-react";
 import { EmptyIllustration } from "@/components/shared/empty-illustration";
 
 import type { ClientBookingRow, BookingStatus } from "@/modules/booking";
+import { isLive } from "@/modules/booking/lib/session-lifecycle";
+import { RemoveSessionButton } from "@/components/shared/session-actions";
 import { cancelBookingAction } from "@/modules/booking/actions/cancel-booking";
 import { rescheduleBookingAction } from "@/modules/booking/actions/reschedule-booking";
 import { leaveBookingAction } from "@/modules/booking/actions/group";
@@ -372,6 +374,7 @@ function BookingCard({
                 {booking.therapistDisplayName}
               </Link>
               <Badge variant={status.variant}>{status.label}</Badge>
+              {isLive(booking) ? <Badge variant="default">Live now</Badge> : null}
               {booking.groupCapacity > 1 ? (
                 <Badge variant="secondary" className="gap-1">
                   <Users className="h-3 w-3" aria-hidden="true" />
@@ -428,6 +431,10 @@ function BookingCard({
               </Link>
             </Button>
           ) : null}
+          <RemoveSessionButton
+            bookingId={booking.id}
+            label={booking.therapistDisplayName}
+          />
         </div>
       </CardContent>
     </Card>

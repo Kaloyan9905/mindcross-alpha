@@ -1,6 +1,7 @@
 import { and, desc, eq, gt, lt, ne } from "drizzle-orm";
 
 import { getDb } from "@/lib/db";
+import { markBookingStarted } from "@/modules/booking/lib/mark-booking-started";
 import {
   meetingMessages,
   meetingPresence,
@@ -68,6 +69,10 @@ export async function syncRoom(input: {
 }): Promise<{ ok: true; data: SyncRoomResult } | { ok: false; error: string }> {
   const membership = await getRoomMembership(input.bookingId, input.userId);
   if (!membership) return { ok: false, error: "not-a-member" };
+
+  // Someone is actively in the room → mark the session started (once). This
+  // extends its joinable window and keeps the no-show scan from expiring it.
+  await markBookingStarted(input.bookingId);
 
   const db = getDb();
   const now = new Date();
