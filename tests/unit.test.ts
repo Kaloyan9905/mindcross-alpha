@@ -17,6 +17,13 @@ import {
   isLive,
   sessionPhase,
 } from "@/modules/booking/lib/session-lifecycle";
+import {
+  startOfWeek,
+  daysOfWeek,
+  monthGridDays,
+  dayBlockBounds,
+  addDays,
+} from "@/lib/calendar";
 
 describe("safeCallbackUrl (open-redirect guard)", () => {
   it("accepts a normal same-origin relative path", () => {
@@ -182,6 +189,42 @@ describe("session lifecycle (grace period)", () => {
     expect(sessionPhase(base({ status: "cancelled" }), new Date())).toBe("cancelled");
     expect(sessionPhase(base({ status: "completed" }), new Date())).toBe("ended");
     expect(sessionPhase(base({ status: "no_show" }), new Date())).toBe("missed");
+  });
+});
+
+describe("calendar helpers", () => {
+  it("startOfWeek returns the Monday 00:00 of the week", () => {
+    const wed = new Date(2026, 5, 3, 15, 30); // Wed 3 Jun 2026
+    const mon = startOfWeek(wed);
+    expect(mon.getDay()).toBe(1); // Monday
+    expect(mon.getDate()).toBe(1); // Mon 1 Jun
+    expect(mon.getHours()).toBe(0);
+    expect(mon.getMinutes()).toBe(0);
+  });
+
+  it("daysOfWeek is 7 days Mon→Sun", () => {
+    const days = daysOfWeek(new Date(2026, 5, 3));
+    expect(days).toHaveLength(7);
+    expect(days[0].getDay()).toBe(1);
+    expect(days[6].getDay()).toBe(0);
+  });
+
+  it("monthGridDays is 42 days starting on a Monday", () => {
+    const grid = monthGridDays(new Date(2026, 5, 15));
+    expect(grid).toHaveLength(42);
+    expect(grid[0].getDay()).toBe(1);
+  });
+
+  it("dayBlockBounds clamps an event to a day in minutes", () => {
+    const day = new Date(2026, 5, 3);
+    const b = dayBlockBounds(new Date(2026, 5, 3, 9, 0), new Date(2026, 5, 3, 10, 30), day);
+    expect(b).toEqual({ top: 540, bottom: 630 });
+    expect(dayBlockBounds(new Date(2026, 5, 3, 9, 0), new Date(2026, 5, 3, 10, 0), addDays(day, 1))).toBeNull();
+    // A multi-day block fills the whole middle day.
+    expect(dayBlockBounds(new Date(2026, 5, 2, 12, 0), new Date(2026, 5, 5, 12, 0), day)).toEqual({
+      top: 0,
+      bottom: 1440,
+    });
   });
 });
 

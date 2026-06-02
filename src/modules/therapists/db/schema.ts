@@ -152,6 +152,38 @@ export type AvailabilitySlot = typeof availabilitySlots.$inferSelect;
 export type NewAvailabilitySlot = typeof availabilitySlots.$inferInsert;
 
 /**
+ * therapist_time_off: a blocked / vacation span on the therapist's calendar.
+ * Shown as unavailable; adding one clears overlapping open slots (in the
+ * action). A whole day off is stored as that day's 00:00 → next day 00:00.
+ */
+export const therapistTimeOff = pgTable(
+  "therapist_time_off",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => uuidv7()),
+    therapistId: text("therapist_id")
+      .notNull()
+      .references(() => therapists.id, { onDelete: "cascade" }),
+    startsAt: timestamp("starts_at", { withTimezone: true, mode: "date" }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true, mode: "date" }).notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (table) => ({
+    therapistIdx: index("therapist_time_off_therapist_idx").on(
+      table.therapistId,
+      table.startsAt,
+    ),
+  }),
+);
+
+export type TherapistTimeOff = typeof therapistTimeOff.$inferSelect;
+export type NewTherapistTimeOff = typeof therapistTimeOff.$inferInsert;
+
+/**
  * therapist_applications: inbound applications from the public "join as
  * therapist" form. These are reviewed by admin_ops; on approval, ops
  * authors a `therapists` row and (optionally) invites the applicant to a

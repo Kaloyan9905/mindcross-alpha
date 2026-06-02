@@ -57,6 +57,13 @@
       "when": 1749200000000,
       "tag": "0007_session_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1749300000000,
+      "tag": "0008_therapist_time_off",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@
 export {
   therapists,
   availabilitySlots,
+  therapistTimeOff,
   therapistApplications,
   THERAPIST_STATUS,
   THERAPIST_GENDERS,
@@ -17,6 +18,8 @@ export type {
   TherapistGender,
   AvailabilitySlot,
   NewAvailabilitySlot,
+  TherapistTimeOff,
+  NewTherapistTimeOff,
   TherapistApplication,
   NewTherapistApplication,
   TherapistApplicationStatus,
@@ -40,8 +43,12 @@ export { listTherapistsAdmin } from "./queries/list-therapists-admin";
 export type { TherapistAdminRow } from "./queries/list-therapists-admin";
 
 export { getTherapistForCurrentUser } from "./queries/get-therapist-for-user";
-export { listUpcomingAvailability } from "./queries/list-availability-for-therapist";
+export {
+  listUpcomingAvailability,
+  listAvailabilityInRange,
+} from "./queries/list-availability-for-therapist";
 export { listOpenSlotsForTherapist } from "./queries/list-open-slots";
+export { listTimeOff } from "./queries/list-time-off";
 
 // --- Server actions ----------------------------------------------------------
 export { submitApplicationAction } from "./actions/submit-application";
@@ -84,3 +91,7 @@ export type {
   RemoveAvailabilitySlotInput,
   AvailabilityResult,
 } from "./actions/manage-availability";
+
+export { addTimeOffAction, removeTimeOffAction } from "./actions/manage-time-off";
+export type { AddTimeOffInput, TimeOffResult } from "./actions/manage-time-off";
+export { addTimeOff, removeTimeOff } from "./lib/manage-time-off";
