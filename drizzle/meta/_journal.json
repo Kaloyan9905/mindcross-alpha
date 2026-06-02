@@ -36,6 +36,13 @@
       "when": 1748900000000,
       "tag": "0004_wellbeing_safety",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1749000000000,
+      "tag": "0005_meeting_signaling",
+      "breakpoints": true
     }
   ]
 }

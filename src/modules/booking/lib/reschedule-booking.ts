@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { sessionRoomUrl } from "@/lib/site";
 import { users } from "@/modules/identity/db/schema";
 import { availabilitySlots, therapists } from "@/modules/therapists/db/schema";
 import { bookingRescheduled, sendEmail } from "@/modules/notifications";
@@ -158,7 +159,7 @@ export async function rescheduleBooking(
         clientName: details.clientName ?? "",
         therapistName: details.therapistName,
         startsAt: details.startsAt,
-        joinUrl: details.joinUrl ?? null,
+        joinUrl: sessionRoomUrl(outcome.bookingId),
       });
       await sendEmail({ to: details.clientEmail, ...email });
     }

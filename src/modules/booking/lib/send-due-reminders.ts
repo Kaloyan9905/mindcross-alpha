@@ -1,5 +1,6 @@
 import { and, asc, eq, gt, isNull, lte } from "drizzle-orm";
 import { getDb } from "@/lib/db";
+import { sessionRoomUrl } from "@/lib/site";
 import { users } from "@/modules/identity/db/schema";
 import { therapists } from "@/modules/therapists/db/schema";
 import { bookingReminder, sendEmail } from "@/modules/notifications";
@@ -89,7 +90,7 @@ async function runPass(
         clientName: c.clientName ?? "",
         therapistName: c.therapistName,
         startsAt: c.startsAt,
-        joinUrl: c.joinUrl ?? null,
+        joinUrl: sessionRoomUrl(c.id),
         kind,
       });
       await sendEmail({ to: c.clientEmail, ...email });

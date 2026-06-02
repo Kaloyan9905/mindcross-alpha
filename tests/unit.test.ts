@@ -10,6 +10,7 @@ import { registerSchema, loginSchema } from "@/modules/identity/lib/validators";
 import { therapistFilterSchema } from "@/modules/therapists/lib/filters";
 import { isLocale, LOCALE_META } from "@/lib/i18n/config";
 import { regionByCode } from "@/modules/safety/lib/crisis-lines";
+import { getIceServers } from "@/modules/meeting/lib/ice";
 
 describe("safeCallbackUrl (open-redirect guard)", () => {
   it("accepts a normal same-origin relative path", () => {
@@ -136,5 +137,30 @@ describe("crisis-lines regionByCode", () => {
     expect(eu?.lines.length).toBeGreaterThan(0);
     expect(regionByCode("de")?.label).toBe("Germany");
     expect(regionByCode("zz")).toBeUndefined();
+  });
+});
+
+describe("meeting getIceServers", () => {
+  it("returns public STUN and no TURN by default", () => {
+    delete process.env.MEETING_TURN_URL;
+    const s = getIceServers();
+    expect(s.length).toBeGreaterThan(0);
+    expect(s.some((x) => String(x.urls).startsWith("stun:"))).toBe(true);
+    expect(s.some((x) => String(x.urls).startsWith("turn:"))).toBe(false);
+  });
+
+  it("appends a configured TURN relay with credentials", () => {
+    process.env.MEETING_TURN_URL = "turn:turn.example.com:3478";
+    process.env.MEETING_TURN_USERNAME = "u";
+    process.env.MEETING_TURN_CREDENTIAL = "p";
+    try {
+      const turn = getIceServers().find((x) => String(x.urls).startsWith("turn:"));
+      expect(turn?.username).toBe("u");
+      expect(turn?.credential).toBe("p");
+    } finally {
+      delete process.env.MEETING_TURN_URL;
+      delete process.env.MEETING_TURN_USERNAME;
+      delete process.env.MEETING_TURN_CREDENTIAL;
+    }
   });
 });

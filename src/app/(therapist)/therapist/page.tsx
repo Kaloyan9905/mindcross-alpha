@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, Video } from "lucide-react";
+import { Video } from "lucide-react";
 
 import { getTherapistForCurrentUser } from "@/modules/therapists";
 import {
@@ -90,17 +90,15 @@ function BookingRow({
               currentNotes={booking.therapistNotes}
             />
           </div>
-        ) : !showOutcome && booking.status === "confirmed" && booking.joinUrl ? (
+        ) : !showOutcome && booking.status === "confirmed" ? (
           <div className="flex justify-end">
-            <a
-              href={booking.joinUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href={`/session/${booking.id}`}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
             >
               <Video className="h-4 w-4" aria-hidden="true" />
               Join
-            </a>
+            </Link>
           </div>
         ) : (
           <span className="block text-right text-xs text-muted-foreground">
@@ -245,34 +243,6 @@ export default async function TherapistDashboardPage() {
           .
         </p>
       </header>
-
-      {!therapist.sessionUrl ? (
-        <div
-          role="alert"
-          className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4"
-        >
-          <AlertTriangle
-            className="mt-0.5 h-5 w-5 shrink-0 text-destructive"
-            aria-hidden="true"
-          />
-          <div className="text-sm">
-            <p className="font-medium text-foreground">
-              Add your video room link
-            </p>
-            <p className="mt-0.5 text-muted-foreground">
-              Clients can&rsquo;t join a session without it. Add your Zoom / Meet
-              / Whereby link on your{" "}
-              <Link
-                href="/therapist/profile"
-                className="font-medium text-primary underline-offset-4 hover:underline"
-              >
-                profile
-              </Link>
-              .
-            </p>
-          </div>
-        </div>
-      ) : null}
 
       <section aria-labelledby="upcoming-heading">
         <Card>

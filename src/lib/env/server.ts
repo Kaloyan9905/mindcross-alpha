@@ -12,6 +12,13 @@ const ServerEnvSchema = z.object({
   // requests must present it as `Authorization: Bearer <CRON_SECRET>`. The
   // endpoint refuses to run in production unless this is configured.
   CRON_SECRET: z.string().optional(),
+  // Optional TURN relay for the in-app meeting engine. STUN (free, no account)
+  // handles most calls; set these to close the NAT gap for users behind
+  // symmetric NAT / restrictive firewalls (e.g. a self-hosted coturn). When
+  // unset, the room runs STUN-only. Read by `@/modules/meeting/lib/ice`.
+  MEETING_TURN_URL: z.string().optional(),
+  MEETING_TURN_USERNAME: z.string().optional(),
+  MEETING_TURN_CREDENTIAL: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;

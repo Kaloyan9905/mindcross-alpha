@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ExternalLink, LogOut, MessageCircle, Users, Video } from "lucide-react";
+import { LogOut, MessageCircle, Users, Video } from "lucide-react";
 
 import { EmptyIllustration } from "@/components/shared/empty-illustration";
 
@@ -347,10 +347,9 @@ function BookingCard({
   const canLeave = isUpcomingConfirmed && !isHost;
   const canMessage =
     isHost && (booking.status === "confirmed" || booking.status === "completed");
-  const showJoinLink =
-    variant === "upcoming" &&
-    booking.status === "confirmed" &&
-    Boolean(booking.joinUrl);
+  // The session room is in-app (one per booking), so a join is always available
+  // for an upcoming confirmed session — no external link required.
+  const showJoinLink = variant === "upcoming" && booking.status === "confirmed";
 
   return (
     <Card>
@@ -390,17 +389,12 @@ function BookingCard({
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          {showJoinLink && booking.joinUrl ? (
+          {showJoinLink ? (
             <Button asChild size="sm">
-              <a
-                href={booking.joinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href={`/session/${booking.id}`}>
                 <Video aria-hidden="true" />
                 Join session
-                <ExternalLink aria-hidden="true" />
-              </a>
+              </Link>
             </Button>
           ) : null}
           {canMessage ? (

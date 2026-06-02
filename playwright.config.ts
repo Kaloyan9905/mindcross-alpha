@@ -31,7 +31,23 @@ export default defineConfig({
     actionTimeout: 15_000,
     navigationTimeout: 30_000,
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        // Grant camera/mic with a synthetic device so the meeting room can call
+        // getUserMedia headlessly without a real webcam or a permission prompt.
+        permissions: ["camera", "microphone"],
+        launchOptions: {
+          args: [
+            "--use-fake-ui-for-media-stream",
+            "--use-fake-device-for-media-stream",
+          ],
+        },
+      },
+    },
+  ],
   webServer: {
     command: `pnpm exec next build && pnpm exec next start -p ${PORT}`,
     url: BASE_URL,

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import { sessionRoomUrl } from "@/lib/site";
 import { users } from "@/modules/identity/db/schema";
 import {
   availabilitySlots,
@@ -160,7 +161,7 @@ export async function createBooking(
         clientName: client.name ?? "",
         therapistName: therapist.displayName,
         startsAt: therapist.startsAt,
-        joinUrl: therapist.joinUrl ?? null,
+        joinUrl: sessionRoomUrl(outcome.bookingId),
       });
       await sendEmail({ to: client.email, ...email });
     }
